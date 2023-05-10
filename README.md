@@ -10,7 +10,7 @@ You will need to install Cython with `pip install Cython`.
 
 ## Tasks
 
-- Write cython Matrix
 - write cython module to search datasets and add pages to the matrix
 - choose/write html parser for the above module.
     - must be able to handle broken html
+- write cython module to search/query Matrix

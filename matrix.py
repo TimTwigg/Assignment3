@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from sortedcontainers import SortedList
+import json
 
 @dataclass(order = True)
 class Posting:
@@ -32,9 +33,16 @@ class Posting:
         self.frequency += other.frequency
         return self
 
+MatrixData = dict[str: SortedList[Posting]]
+
 class Matrix:
-    def __init__(self):
-        self._matrix_: dict[str: SortedList[Posting]] = {}
+    def __init__(self, data: MatrixData = {}):
+        """Create a new Matrix object.
+
+        Args:
+            data (MatrixData, optional): if provided, creates the Matrix from the given previous matrix data.
+        """
+        self._matrix_: MatrixData = data
     
     def __str__(self) -> str:
         return str(self._matrix_)
@@ -84,3 +92,30 @@ class Matrix:
             t = self._matrix_[term][i]
             self._matrix_[term].remove(t)
         return t
+    
+    def save(self, filename: str = "matrix.json") -> None:
+        """Save the matrix to a json file.
+
+        Args:
+            filename (str, optional): filename to save to. Defaults to "matrix.json".
+        """
+        with open(filename, "w") as f:
+            json.dumps(self._matrix_, f, indent = 4)
+    
+    @staticmethod
+    def load(filename: str = "matrix.json") -> Matrix:
+        """Load a matrix from a save file.
+
+        Args:
+            filename (str, optional): the filename to load from. Defaults to "matrix.json".
+
+        Returns:
+            Matrix: a new Matrix object with the loaded data.
+        """
+        try:
+            with open(filename, "r") as f:
+                data: MatrixData = json.load(f)
+            return Matrix(data)
+        except FileNotFoundError:
+            print("Could not find file to load Matrix:", filename)
+            raise

@@ -5,11 +5,31 @@ from sortedcontainers import SortedList
 @dataclass(order = True)
 class Posting:
     id: str
+    frequency: int
     
     def __eq__(self, other: Posting) -> bool:
         return self.id == other.id
+
+    def __ne__(self, other: Posting) -> bool:
+        return not self == other
+    
+    def __lt__(self, other: Posting) -> bool:
+        return self != other and self.frequency < other.frequency
+    
+    def __le__(self, other: Posting) -> bool:
+        return self == other or self < other
+    
+    def __gt__(self, other: Posting) -> bool:
+        return self != other and self.frequency > other.frequency
+    
+    def __ge__(self, other: Posting) -> bool:
+        return self == other or self > other
     
     def __add__(self, other: Posting) -> Posting:
+        return Posting(self.id, self.frequency + other.frequency)
+    
+    def __iadd__(self, other: Posting) -> Posting:
+        self.frequency += other.frequency
         return self
 
 class Matrix:
@@ -28,8 +48,8 @@ class Matrix:
         the original posting with the given post.
 
         Args:
-            term (str): the term to create or update.
-            post (Posting): the Posting to add to term's value.
+            term (str): the term to create or update. \n
+            post (Posting): the Posting to add to term's value. \n
             update (bool, optional): Sets behavior for post matching on insertion. Defaults to True.
         """
         if term in self._matrix_:
@@ -50,7 +70,7 @@ class Matrix:
         the entire term, else remove the posting with postID from term's value.
 
         Args:
-            term (str): the term to update or delete.
+            term (str): the term to update or delete. \n
             postID (str, optional): id of Posting to remove. Defaults to None.
 
         Returns:

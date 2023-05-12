@@ -1,9 +1,11 @@
+import os
+import argparse
 from src.indexer import Indexer, Site
 from src.matrix import  Matrix, Posting
-import os
 
-def CreateIndex(dataset: str = "test"):
+def CreateIndex(dataset: str = "test", chunkSize: int = 100):
     print("Index Dataset:", dataset)
+    print("Chunk Size:", chunkSize)
     print("Creating Index: ", end = "")
     indexer = Indexer(dataset)
     print("Done")
@@ -18,7 +20,7 @@ def CreateIndex(dataset: str = "test"):
             matrix.add(k, Posting(str(hash(tokens.path.name)), v))
         tokens = indexer.getNextSite()
         count += 1
-        if count % 100 == 0:
+        if count % chunkSize == 0:
             print(f"Indexed {count} pages. Found {matrix.size()} distinct tokens.")
     
     matrix.save()
@@ -34,5 +36,9 @@ Filesize: {size / 1024:.4f} kb | {size / 1024**2:.4f} mb | {size / 1024**3:.4f} 
     print("Indexing Complete")
 
 if __name__ == "__main__":
-    CreateIndex()
+    parser = argparse.ArgumentParser(description = "Run Search Engine")
+    parser.add_argument("-d", "--dataset", help = "Which dataset to index, defaults to testing set.", nargs = "?", type = str, default = "test")
+    parser.add_argument("-c", "--chunksize", help = "Indexing Chunk Size, defaults to 100.", nargs = "?", type = int, default = 100)
+    args = parser.parse_args()
+    CreateIndex(args.dataset, args.chunksize)
     

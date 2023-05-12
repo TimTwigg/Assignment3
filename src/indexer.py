@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 from bs4.builder import XMLParsedAsHTMLWarning
 import warnings
 import json
-from dataclasses import dataclass
 from nltk.stem import PorterStemmer
 from src.helpers import tokenize, tag_visible, computeWordFrequencies
 
@@ -13,10 +12,10 @@ SMALL_DATASET_ROOT = "data/analyst_dataset"
 LARGE_DATASET_ROOT = "data/developer_dataset"
 STOP_WORDS_FILE = "data/stop_words.txt"
 
-@dataclass
 class Site:
-    path: Path
-    tokens: dict[str: int]
+    def __init__(self, path: Path, tokens: dict[str: int]):
+        self.path: Path = path
+        self.tokens: dict[str: int] = tokens
 
 class Indexer:
     def __init__(self, dataset: str = "test"):

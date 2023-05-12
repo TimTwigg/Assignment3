@@ -17,6 +17,8 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - update save/load methods to work with a segmented matrix (see task 2)
         - add chunk size to Matrix
 2. write cython module to search datasets and add pages to the matrix
+    - indexer module in cythonLib
+    - implement `._getNextUrl_()`, `._parse_html_()` and `._tokenize_()` methods
     - must not hold entire index in memory (segmented matrix)
         - split into 3 or 4 sets of tokens alphabetically
         - keep loading tokens until a certain size, merge that data to the files, and then continue parsing data

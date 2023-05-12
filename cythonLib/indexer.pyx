@@ -35,9 +35,15 @@ class Indexer:
             self.dataset = SMALL_DATASET_ROOT
     
     def _getNextUrl_(self) -> str:
+        # TODO
         return ""
     
+    def _parse_html_(self, html: str) -> list:
+        # TODO
+        return []
+    
     def _tokenize_(self, url: str) -> dict:
+        # TODO
         return {}
     
     def getNextSite(self) -> Site:

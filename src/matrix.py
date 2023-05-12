@@ -3,28 +3,28 @@ from dataclasses import dataclass
 from sortedcontainers import SortedList
 import json
 
+class MatrixException(Exception):
+    pass
+
 @dataclass(order = True)
 class Posting:
     id: str
     frequency: int
+    
+    def __init__(self, id: str, frequency: int):
+        if not isinstance(id, str):
+            raise MatrixException("Posting id must be str")
+        elif not isinstance(frequency, int):
+            raise MatrixException("Posting frequency must be int")
+        
+        self.id = id
+        self.frequency = frequency
     
     def __eq__(self, other: Posting) -> bool:
         return isinstance(other, Posting) and self.id == other.id
 
     def __ne__(self, other: Posting) -> bool:
         return not self == other
-    
-    # def __lt__(self, other: Posting) -> bool:
-    #     return self != other and self.frequency < other.frequency
-    
-    # def __le__(self, other: Posting) -> bool:
-    #     return self == other or self < other
-    
-    # def __gt__(self, other: Posting) -> bool:
-    #     return self != other and self.frequency > other.frequency
-    
-    # def __ge__(self, other: Posting) -> bool:
-    #     return self == other or self > other
     
     def __add__(self, other: Posting) -> Posting:
         return Posting(self.id, self.frequency + other.frequency)
@@ -51,7 +51,7 @@ class Matrix:
         self._matrix_: MatrixData = data
     
     def __str__(self) -> str:
-        return str(self._matrix_)
+        return "\n  ".join(["Matrix:"] + [f"{k}: {v}" for k,v in self._matrix_.items()])
 
     def add(self, term: str, post: Posting, update: bool = True) -> None:
         """Insert a new document to the matrix for the given term.
@@ -71,7 +71,6 @@ class Matrix:
                 if update:
                     i = self._matrix_[term].index(post)
                     self._matrix_[term][i].frequency += post.frequency
-                    # self._matrix_[term][post]
                 else:
                     self._matrix_[term].discard(post)
                     self._matrix_[term].add(post)
@@ -95,7 +94,7 @@ class Matrix:
             t = self._matrix_[term]
             del self._matrix_[term]
         else:
-            i = self._matrix_[term].index(postID)
+            i = self._matrix_[term].index(Posting(postID, 0))
             t = self._matrix_[term][i]
             self._matrix_[term].discard(t)
         return t
@@ -127,5 +126,4 @@ class Matrix:
                 data: MatrixData = json.load(f)
             return Matrix(data)
         except FileNotFoundError:
-            print("Could not find file to load Matrix:", filename)
-            raise
+            raise MatrixException(f"Could not find file to load Matrix: {filename}")

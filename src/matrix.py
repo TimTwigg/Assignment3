@@ -9,22 +9,22 @@ class Posting:
     frequency: int
     
     def __eq__(self, other: Posting) -> bool:
-        return self.id == other.id
+        return isinstance(other, Posting) and self.id == other.id
 
     def __ne__(self, other: Posting) -> bool:
         return not self == other
     
-    def __lt__(self, other: Posting) -> bool:
-        return self != other and self.frequency < other.frequency
+    # def __lt__(self, other: Posting) -> bool:
+    #     return self != other and self.frequency < other.frequency
     
-    def __le__(self, other: Posting) -> bool:
-        return self == other or self < other
+    # def __le__(self, other: Posting) -> bool:
+    #     return self == other or self < other
     
-    def __gt__(self, other: Posting) -> bool:
-        return self != other and self.frequency > other.frequency
+    # def __gt__(self, other: Posting) -> bool:
+    #     return self != other and self.frequency > other.frequency
     
-    def __ge__(self, other: Posting) -> bool:
-        return self == other or self > other
+    # def __ge__(self, other: Posting) -> bool:
+    #     return self == other or self > other
     
     def __add__(self, other: Posting) -> Posting:
         return Posting(self.id, self.frequency + other.frequency)
@@ -32,6 +32,12 @@ class Posting:
     def __iadd__(self, other: Posting) -> Posting:
         self.frequency += other.frequency
         return self
+    
+    def __str__(self) -> str:
+        return f"Posting(id={self.id}, frequency={self.frequency})"
+    
+    def toDict(self) -> dict:
+        return {"id": self.id, "frequency": self.frequency}
 
 MatrixData = dict[str: SortedList[Posting]]
 
@@ -64,12 +70,13 @@ class Matrix:
             if post in self._matrix_[term]:
                 if update:
                     i = self._matrix_[term].index(post)
-                    self._matrix_[term][i] += post
+                    self._matrix_[term][i].frequency += post.frequency
+                    # self._matrix_[term][post]
                 else:
-                    self._matrix_[term].remove(post)
-                    self._matrix_[term].append(post)
+                    self._matrix_[term].discard(post)
+                    self._matrix_[term].add(post)
             else:
-                self._matrix_[term].append(post)
+                self._matrix_[term].add(post)
         else:
             self._matrix_[term] = SortedList([post])
     
@@ -90,8 +97,11 @@ class Matrix:
         else:
             i = self._matrix_[term].index(postID)
             t = self._matrix_[term][i]
-            self._matrix_[term].remove(t)
+            self._matrix_[term].discard(t)
         return t
+    
+    def size(self) -> int:
+        return len(self._matrix_)
     
     def save(self, filename: str = "matrix.json") -> None:
         """Save the matrix to a json file.
@@ -100,7 +110,7 @@ class Matrix:
             filename (str, optional): filename to save to. Defaults to "matrix.json".
         """
         with open(filename, "w") as f:
-            json.dumps(self._matrix_, f, indent = 4)
+            json.dump({k: [p.toDict() for p in v] for k,v in self._matrix_.items()}, f, indent = 4)
     
     @staticmethod
     def load(filename: str = "matrix.json") -> Matrix:

@@ -153,5 +153,6 @@ cython_debug/
 
 data/
 *.json
+summary.txt
 
 test.py

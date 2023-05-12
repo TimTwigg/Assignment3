@@ -1,20 +1,25 @@
-from src import Indexer, Site, Matrix, Posting
+from src.indexer import Indexer, Site
+from src.matrix import  Matrix, Posting
 import os
 
-def CreateIndex():
-    indexer = Indexer()
+def CreateIndex(dataset: str = "test"):
+    print("Index Dataset:", dataset)
+    print("Creating Index: ", end = "")
+    indexer = Indexer(dataset)
+    print("Done")
+    print("Creating Matrix: ", end = "")
     matrix: Matrix = Matrix()
+    print("Done")
     count = 0
+    print("Begin Indexing")
     tokens: Site = indexer.getNextSite()
     while tokens:
         for k,v in tokens.tokens.items():
-            matrix.add(k, Posting(hash(tokens.path.name), v))
+            matrix.add(k, Posting(str(hash(tokens.path.name)), v))
         tokens = indexer.getNextSite()
         count += 1
-        if count % 500 == 0:
-            print(f"Indexed {count} pages")
-        if count > 100:
-            break
+        if count % 100 == 0:
+            print(f"Indexed {count} pages. Found {matrix.size()} distinct tokens.")
     
     matrix.save()
     
@@ -26,7 +31,7 @@ Number of unique tokens: {matrix.size()}
 Filesize: {size / 1024:.4f} kb | {size / 1024**2:.4f} mb | {size / 1024**3:.4f} gb
 """)
 
-    print("Complete")
+    print("Indexing Complete")
 
 if __name__ == "__main__":
     CreateIndex()

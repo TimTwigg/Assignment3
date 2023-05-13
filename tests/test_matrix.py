@@ -2,8 +2,8 @@ from src.matrix import Matrix, Posting
 
 def setup_matrix() -> Matrix:
     matrix = Matrix()
-    postData = [*enumerate("abcdefghijklmnopqrstuvwxyz")]
-    for i,l in postData[:5]:
+    postData = [*enumerate("123456abcdefghijklmnopqrstuvwxyz")]
+    for i,l in postData:
         matrix.add(l, Posting(str(i), 5))
     return matrix
 
@@ -17,6 +17,6 @@ def test_matrix():
     # test removing
     matrix.add("a", Posting("1", 2))
     matrix.remove("b")
-    matrix.remove("a", "0")
+    matrix.remove("a", "3")
     
     print(matrix)

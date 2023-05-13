@@ -2,6 +2,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from sortedcontainers import SortedList
 import json
+from json import JSONDecodeError
+from copy import deepcopy
+from pathlib import Path
 
 class MatrixException(Exception):
     pass
@@ -42,16 +45,85 @@ class Posting:
 MatrixData = dict[str: SortedList[Posting]]
 
 class Matrix:
-    def __init__(self, data: MatrixData = {}):
+    def __init__(self, data: list[MatrixData] = [], filename: str = "matrix"):
         """Create a new Matrix object.
 
         Args:
             data (MatrixData, optional): if provided, creates the Matrix from the given previous matrix data.
+            filename (str, optional): the filename for the matrix files. Defaults to 'matrix'.
         """
-        self._matrix_: MatrixData = data
+        self._breakpoints_ = ["a", "i", "r"]
+        self._matrix_1_: MatrixData = {}
+        self._matrix_2_: MatrixData = {}
+        self._matrix_3_: MatrixData = {}
+        self._matrix_4_: MatrixData = {}
+        self._matrix_1_size_: int = 0
+        self._matrix_2_size_: int = 0
+        self._matrix_3_size_: int = 0
+        self._matrix_4_size_: int = 0
+        self._filename_ = filename
+        
+        # load init data
+        try:
+            for m in data:
+                for k,v in m.items():
+                    for post in v:
+                        self.add(k, post)
+        except (IndexError, KeyError):
+            raise MatrixException("Matrix: invalid data.")
+        
+        self._clean_submatrices_()
+    
+    def _clean_submatrices_(self) -> None:
+        for i in range(1, 5):
+            path = Path(f"{self._filename_}{i}.json")
+            path.unlink(missing_ok = True)
     
     def __str__(self) -> str:
-        return "\n  ".join(["Matrix:"] + [f"{k}: {v}" for k,v in self._matrix_.items()])
+        return "\n  ".join(["Matrix:"] + [f"{k}: {v}" for k,v in self._matrix_1_.items()] + ["+"] +
+                           [f"{k}: {v}" for k,v in self._matrix_2_.items()] + ["+"] +
+                           [f"{k}: {v}" for k,v in self._matrix_3_.items()] + ["+"] +
+                           [f"{k}: {v}" for k,v in self._matrix_4_.items()]) + "\n"
+    
+    def _increment_size(self, id: int, modifier: int = 1) -> None:
+        match id:
+            case 1:
+                self._matrix_1_size_ += 1 * modifier
+            case 2:
+                self._matrix_2_size_ += 1 * modifier
+            case 3:
+                self._matrix_3_size_ += 1 * modifier
+            case 4:
+                self._matrix_4_size_ += 1 * modifier
+    
+    def _choose_submatrix_(self, term: str) -> int:
+        """Determines which submatrix the term should fit into.
+
+        Args:
+            term (str): The term to test.
+
+        Returns:
+            int: an int in the range [1, 4] representing which submatrix the term belongs to.
+        """
+        for i,brk in enumerate(self._breakpoints_, start = 1):
+            if term < brk:
+                return i
+        return 4
+    
+    def _add_(self, id: int, matrix: MatrixData, term: str, post: Posting, update: bool = True) -> None:
+        if term in matrix:
+            if post in matrix[term]:
+                if update:
+                    i = matrix[term].index(post)
+                    matrix[term][i].frequency += post.frequency
+                else:
+                    matrix[term].discard(post)
+                    matrix[term].add(post)
+            else:
+                matrix[term].add(post)
+        else:
+            matrix[term] = SortedList([post])
+            self._increment_size(id)
 
     def add(self, term: str, post: Posting, update: bool = True) -> None:
         """Insert a new document to the matrix for the given term.
@@ -66,18 +138,33 @@ class Matrix:
             post (Posting): the Posting to add to term's value. \n
             update (bool, optional): Sets behavior for post matching on insertion. Defaults to True.
         """
-        if term in self._matrix_:
-            if post in self._matrix_[term]:
-                if update:
-                    i = self._matrix_[term].index(post)
-                    self._matrix_[term][i].frequency += post.frequency
-                else:
-                    self._matrix_[term].discard(post)
-                    self._matrix_[term].add(post)
+        brk: int = self._choose_submatrix_(term)
+        match brk:
+            case 1:
+                self._add_(1, self._matrix_1_, term, post, update)
+            case 2:
+                self._add_(2, self._matrix_2_, term, post, update)
+            case 3:
+                self._add_(3, self._matrix_3_, term, post, update)
+            case 4:
+                self._add_(4, self._matrix_4_, term, post, update)
+    
+    def _remove_(self, id: int, matrix: MatrixData, term: str, postID: str = None) -> Posting|SortedList[Posting]:
+        try:
+            if postID is None:
+                t = matrix[term]
+                del matrix[term]
+                self._increment_size(id, -1)
             else:
-                self._matrix_[term].add(post)
-        else:
-            self._matrix_[term] = SortedList([post])
+                i = matrix[term].index(Posting(postID, 0))
+                t = matrix[term][i]
+                matrix[term].discard(t)
+                if len(matrix[term]) == 0:
+                    del matrix[term]
+                    self._increment_size(id, -1)
+            return t
+        except ValueError:
+            raise MatrixException(f"Not found in matrix: {term} with id {postID}")
     
     def remove(self, term: str, postID: str = None) -> Posting|SortedList[Posting]:
         """Remove a term or post from the matrix. If postID is None, remove
@@ -90,40 +177,132 @@ class Matrix:
         Returns:
             Posting|SortedList[Posting]: the Posting or list of Postings removed.
         """
-        if postID is None:
-            t = self._matrix_[term]
-            del self._matrix_[term]
-        else:
-            i = self._matrix_[term].index(Posting(postID, 0))
-            t = self._matrix_[term][i]
-            self._matrix_[term].discard(t)
-        return t
+        brk: int = self._choose_submatrix_(term)
+        try:
+            match brk:
+                case 1:
+                    return self._remove_(1, self._matrix_1_, term, postID)
+                case 2:
+                    return self._remove_(2, self._matrix_2_, term, postID)
+                case 3:
+                    return self._remove_(3, self._matrix_3_, term, postID)
+                case 4:
+                    return self._remove_(4, self._matrix_4_, term, postID)
+        except MatrixException:
+            pass
     
     def size(self) -> int:
-        return len(self._matrix_)
+        """Returns the current size of the matrix. Does not include matrix sections offloaded to files."""
+        return self._matrix_1_size_ + self._matrix_2_size_ + self._matrix_3_size_ + self._matrix_4_size_
     
-    def save(self, filename: str = "matrix.json") -> None:
-        """Save the matrix to a json file.
+    def scan_size(self) -> int:
+        """Returns true total size of the matrix, inclduing matrix sections offloaded to files. First offloads any data currently in matrix."""
+        self.save()
+        size = 0
+        for i in range(1, 5):
+            data = self._load_submatrix_(i)
+            size += len(data)
+        return size
+    
+    def save(self) -> None:
+        """Save the matrix to json files."""
+        data = self._load_submatrix_(1)
+        with open(self._filename_ + "1.json", "w") as f:
+            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_1_).items()}, f, indent = 4)
+            self._matrix_1_.clear()
+            self._matrix_1_size_ = 0
+        
+        data = self._load_submatrix_(2)
+        with open(self._filename_ + "2.json", "w") as f:
+            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_2_).items()}, f, indent = 4)
+            self._matrix_2_.clear()
+            self._matrix_2_size_ = 0
+        
+        data = self._load_submatrix_(3)
+        with open(self._filename_ + "3.json", "w") as f:
+            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_3_).items()}, f, indent = 4)
+            self._matrix_3_.clear()
+            self._matrix_3_size_ = 0
+        
+        data = self._load_submatrix_(4)
+        with open(self._filename_ + "4.json", "w") as f:
+            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_4_).items()}, f, indent = 4)
+            self._matrix_4_.clear()
+            self._matrix_4_size_ = 0
+    
+    def _load_submatrix_(self, id: int) -> MatrixData:
+        """Load a partial matrix.
 
         Args:
-            filename (str, optional): filename to save to. Defaults to "matrix.json".
+            id (int): the submatrix number to load.
+
+        Raises:
+            MatrixException: if id is invalid.
+
+        Returns:
+            MatrixData: the loaded submatrix.
         """
-        with open(filename, "w") as f:
-            json.dump({k: [p.toDict() for p in v] for k,v in self._matrix_.items()}, f, indent = 4)
+        if not isinstance(id, int) or id < 1 or id > 4:
+            raise MatrixException(f"_load_submatrix_: invalid id: {id}")
+        
+        path = Path(f"{self._filename_}{id}.json")
+        path.touch()
+        with open(f"{self._filename_}{id}.json", "r") as f:
+            try:
+                data = json.loads(f.read())
+            except JSONDecodeError:
+                data = {}
+        
+        return {k: SortedList((Posting(**p) for p in v)) for k,v in data.items()}
+    
+    def _merge_matrices_(self, matrixA: MatrixData, matrixB: MatrixData) -> MatrixData:
+        """Merges two MatrixData matrices. Leaves both input matrices untouched.
+
+        Args:
+            matrixA (MatrixData): the first matrix
+            matrixB (MatrixData): the second matix
+        
+        Raises:
+            MatrixException: if either input matrix is None
+
+        Returns:
+            MatrixData: the resultant merged matrix.
+        """
+        if matrixA is None or matrixB is None:
+            raise MatrixException("_merge_matrices: Can't merge None")
+        
+        matrix = deepcopy(matrixA)
+        for k,v in matrixB.items():
+            for post in v:
+                if k not in matrix:
+                    matrix[k] = SortedList([post])
+                    continue
+                
+                if post in matrix[k]:
+                    matrix[k][matrix[k].index(k)].frequency += post.frequency
+                else:
+                    matrix[k].add(post)
+        return matrix
     
     @staticmethod
-    def load(filename: str = "matrix.json") -> Matrix:
-        """Load a matrix from a save file.
+    def load(filename: str = "matrix") -> Matrix:
+        """Load a matrix from save files.
 
         Args:
-            filename (str, optional): the filename to load from. Defaults to "matrix.json".
+            filename (str, optional): the filename to load from. Defaults to "matrix".
 
         Returns:
             Matrix: a new Matrix object with the loaded data.
         """
         try:
-            with open(filename, "r") as f:
-                data: MatrixData = json.load(f)
-            return Matrix(data)
+            with open(f"{filename}1.json", "r") as f:
+                data1 = json.load(f)
+            with open(f"{filename}2.json", "r") as f:
+                data2 = json.load(f)
+            with open(f"{filename}3.json", "r") as f:
+                data3 = json.load(f)
+            with open(f"{filename}4.json", "r") as f:
+                data4 = json.load(f)
+            return Matrix([data1, data2, data3, data4], filename)
         except FileNotFoundError:
             raise MatrixException(f"Could not find file to load Matrix: {filename}")

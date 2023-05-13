@@ -17,6 +17,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - update save/load methods to work with a segmented matrix (see task 2)
         - add chunk size to Matrix
     - test methods more (even the ones not really going to be used too much such as adding a Posting that is already in the term's list)
+        - test removing post not in matrix
 2. write python module to search datasets and add pages to the matrix
     - indexer module in src
     - implement `._getNextUrl_()`, `._parse_html_()` and `._tokenize_()` methods

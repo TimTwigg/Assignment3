@@ -1,5 +1,5 @@
 from pathlib import Path
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
 import warnings
 import json
@@ -7,6 +7,7 @@ from nltk.stem import PorterStemmer
 from src.helpers import tokenize, tag_visible, computeWordFrequencies
 
 warnings.filterwarnings("ignore", category = XMLParsedAsHTMLWarning)
+warnings.filterwarnings("ignore", category = MarkupResemblesLocatorWarning)
 
 SMALL_DATASET_ROOT = "data/analyst_dataset"
 LARGE_DATASET_ROOT = "data/developer_dataset"

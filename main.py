@@ -41,9 +41,8 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = Fal
             break
     
     time_end = time.process_time()
-    print("Finished Dataset: ", end = "")
-    size = matrix.scan_size()
-    print(f"{size} pages.")
+    print(f"Finished Dataset: {count} pages.")
+    matrix.save()
     
     sizes = [os.stat(f"index/matrix{i}.json").st_size for i in range(matrix._matrix_count_)]
     total = sum(sizes)

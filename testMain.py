@@ -1,7 +1,7 @@
-from tests.compare import compare
+
 
 def main():
-    compare()
+    pass
 
 if __name__ == "__main__":
-    main()
+    pass

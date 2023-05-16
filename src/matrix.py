@@ -11,12 +11,13 @@ class MatrixException(Exception):
 
 @dataclass(order = True)
 class Posting:
-    id: str
+    id: int
     frequency: int
     
-    def __init__(self, id: str, frequency: int):
-        if not isinstance(id, str):
-            raise MatrixException("Posting id must be str")
+    def __init__(self, id: int, frequency: int):
+        if not isinstance(id, int):
+            # raise MatrixException("Posting id must be int")
+            id = int(id)
         elif not isinstance(frequency, int):
             raise MatrixException("Posting frequency must be int")
         
@@ -134,7 +135,7 @@ class Matrix:
         brk: int = self._choose_submatrix_(term)
         self._add_(brk, self._submatrices_[brk], term, post, update)
     
-    def _remove_(self, id: int, matrix: MatrixData, term: str, postID: str = None) -> Posting|SortedList[Posting]:
+    def _remove_(self, id: int, matrix: MatrixData, term: str, postID: int = None) -> Posting|SortedList[Posting]:
         try:
             if postID is None:
                 t = matrix[term]
@@ -151,13 +152,13 @@ class Matrix:
         except ValueError:
             raise MatrixException(f"Not found in matrix: {term} with id {postID}")
     
-    def remove(self, term: str, postID: str = None) -> Posting|SortedList[Posting]:
+    def remove(self, term: str, postID: int = None) -> Posting|SortedList[Posting]:
         """Remove a term or post from the matrix. If postID is None, remove
         the entire term, else remove the posting with postID from term's value.
 
         Args:
             term (str): the term to update or delete. \n
-            postID (str, optional): id of Posting to remove. Defaults to None.
+            postID (int, optional): id of Posting to remove. Defaults to None.
 
         Returns:
             Posting|SortedList[Posting]: the Posting or list of Postings removed.
@@ -275,5 +276,7 @@ class Matrix:
                     data.append(json.load(f))
             except FileNotFoundError:
                 break
+            except JSONDecodeError:
+                pass
             count += 1
         return Matrix(data, folder, meta["filename"], meta["breakpoints"])

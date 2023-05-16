@@ -25,13 +25,13 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 
 ### Milestone 2
 
-- Check tf/idf score thing
-
-3. update segmented matrix to work with an arbitrary number of breakpoints
-    - test increasing number of breakpoints and reducing chunk size on indexing speed.
-    - could have fewer segments during indexing and then split them afterwards for faster querying.
+3. update segmented matrix to work with an arbitrary number of breakpoints [`done`]
+    - test increasing number of breakpoints and reducing chunk size on indexing speed. [`done`]
+    - could have fewer segments during indexing and then split them afterwards for faster querying. [`done`]
     - set to create files in folder with extra metadata file for breakpoints and filecount? [`done`]
-4. write cython module to search/query Matrix
+4. write module to search/query Matrix
+    - write in python [`done`]
+    - convert to cython for faster querying?
 
 ### Milestone 3
 
@@ -44,5 +44,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - tiered indeces
         - extra segmented for each token to make it easy to find the best n pages for each token
 8. ranked retrieval
+    - add more info to Posting
+        - use tf-idf score instead of term frequency
     - Pagerank idea: maintain extra index of [docID -> rank]?
     - Jaccard coefficient: intersection / union of 2 sets

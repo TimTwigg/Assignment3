@@ -14,22 +14,35 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 ### Milestone 1
 
 1. write Matrix [`done`]
-    - update save/load methods to work with a segmented matrix (see task 2)
-        - add chunk size to Matrix
-    - test methods more (even the ones not really going to be used too much such as adding a Posting that is already in the term's list)
-        - test removing post not in matrix
-2. write python module to search datasets and add pages to the matrix
-    - indexer module in src
-    - implement `._getNextUrl_()`, `._parse_html_()` and `._tokenize_()` methods
-    - must not hold entire index in memory (segmented matrix)
-        - split into 3 or 4 sets of tokens alphabetically
-        - keep loading tokens until a certain size, merge that data to the files, and then continue parsing data
-3. choose/write html parser for the above module.
-    - must be able to handle broken html
-    - can BeautifulSoup and lxml handle broken html?
+    - update save/load methods to work with a segmented matrix (see task 2) [`done`]
+    - test methods more (even the ones not really going to be used too much such as adding a Posting that is already in the term's list) [`done`]
+2. write python module to search datasets and add pages to the matrix [`done`]
+    - indexer module in src [`done`]
+    - implement `._getNextUrl_()`, `._parse_html_()` and `._tokenize_()` methods [`done`]
+    - must not hold entire index in memory (segmented matrix) [`done`]
+        - split into 3 or 4 sets of tokens alphabetically [`done`]
+        - keep loading tokens until a certain size, merge that data to the files, and then continue parsing data [`done`]
 
 ### Milestone 2
 
+- Check tf/idf score thing
+
+3. update segmented matrix to work with an arbitrary number of breakpoints
+    - test increasing number of breakpoints and reducing chunk size on indexing speed.
+    - could have fewer segments during indexing and then split them afterwards for faster querying.
+    - set to create files in folder with extra metadata file for breakpoints and filecount? [`done`]
 4. write cython module to search/query Matrix
 
 ### Milestone 3
+
+5. updating the index
+    - don't edit the original index. maintain extra indeces for updated and deleted pages.
+        - when the index is queried, check the results against the updated/deleted pages indeces.
+6. query caching
+7. optimization
+    - conjunctive processing
+    - tiered indeces
+        - extra segmented for each token to make it easy to find the best n pages for each token
+8. ranked retrieval
+    - Pagerank idea: maintain extra index of [docID -> rank]?
+    - Jaccard coefficient: intersection / union of 2 sets

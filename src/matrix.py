@@ -45,56 +45,49 @@ class Posting:
 MatrixData = dict[str: SortedList[Posting]]
 
 class Matrix:
-    def __init__(self, data: list[MatrixData] = [], filename: str = "matrix"):
+    def __init__(self, data: list[MatrixData] = [], folder: str = "index", filename: str = "matrix", breakpoints: list[str] = ["a", "i", "r"], clean: bool = False):
         """Create a new Matrix object.
 
         Args:
             data (MatrixData, optional): if provided, creates the Matrix from the given previous matrix data.
-            filename (str, optional): the filename for the matrix files. Defaults to 'matrix'.
+            folder (str, optional): folder where index is stored. Defaults to "index".
+            filename (str, optional): the filename for the matrix files. Defaults to "matrix".
+            breakpoints (list[str], optional): the breakpoints to segment the matrix on. Defaults to ["a", "i", "r"].
+            clean (bool, optional): whether to delete the index files (if exist) on matrix initiation. Defaults to False.
         """
-        self._breakpoints_ = ["a", "i", "r"]
-        self._matrix_1_: MatrixData = {}
-        self._matrix_2_: MatrixData = {}
-        self._matrix_3_: MatrixData = {}
-        self._matrix_4_: MatrixData = {}
-        self._matrix_1_size_: int = 0
-        self._matrix_2_size_: int = 0
-        self._matrix_3_size_: int = 0
-        self._matrix_4_size_: int = 0
+        self._breakpoints_ = breakpoints
+        self._matrix_count_ = len(self._breakpoints_) + 1
+        self._submatrices_: dict[int: MatrixData] = {i: {} for i in range(self._matrix_count_)}
+        self._sizes_: list[int] = [0 for _ in range(self._matrix_count_)]
         self._filename_ = filename
+        self._root_ = folder
+        
+        # create folder
+        path = Path() / self._root_
+        path.mkdir(exist_ok = True)
         
         # load init data
         try:
             for m in data:
                 for k,v in m.items():
                     for post in v:
-                        self.add(k, post)
+                        self.add(k, Posting(**post))
         except (IndexError, KeyError):
             raise MatrixException("Matrix: invalid data.")
         
-        self._clean_submatrices_()
+        if clean:
+            self._clean_submatrices_()
     
     def _clean_submatrices_(self) -> None:
-        for i in range(1, 5):
-            path = Path(f"{self._filename_}{i}.json")
+        for i in range(self._matrix_count_):
+            path = Path(f"{self._root_}/{self._filename_}{i}.json")
             path.unlink(missing_ok = True)
     
     def __str__(self) -> str:
-        return "\n  ".join(["Matrix:"] + [f"{k}: {v}" for k,v in self._matrix_1_.items()] + ["+"] +
-                           [f"{k}: {v}" for k,v in self._matrix_2_.items()] + ["+"] +
-                           [f"{k}: {v}" for k,v in self._matrix_3_.items()] + ["+"] +
-                           [f"{k}: {v}" for k,v in self._matrix_4_.items()]) + "\n"
+        return "Matrix:\n" + "\n  +\n".join("\n  ".join([f"{k}: {v}" for k,v in m.items()]) for _,m in self._submatrices_.items())
     
     def _increment_size(self, id: int, modifier: int = 1) -> None:
-        match id:
-            case 1:
-                self._matrix_1_size_ += 1 * modifier
-            case 2:
-                self._matrix_2_size_ += 1 * modifier
-            case 3:
-                self._matrix_3_size_ += 1 * modifier
-            case 4:
-                self._matrix_4_size_ += 1 * modifier
+        self._sizes_[id] += modifier
     
     def _choose_submatrix_(self, term: str) -> int:
         """Determines which submatrix the term should fit into.
@@ -105,10 +98,10 @@ class Matrix:
         Returns:
             int: an int in the range [1, 4] representing which submatrix the term belongs to.
         """
-        for i,brk in enumerate(self._breakpoints_, start = 1):
+        for i,brk in enumerate(self._breakpoints_):
             if term < brk:
                 return i
-        return 4
+        return self._matrix_count_ - 1
     
     def _add_(self, id: int, matrix: MatrixData, term: str, post: Posting, update: bool = True) -> None:
         if term in matrix:
@@ -139,15 +132,7 @@ class Matrix:
             update (bool, optional): Sets behavior for post matching on insertion. Defaults to True.
         """
         brk: int = self._choose_submatrix_(term)
-        match brk:
-            case 1:
-                self._add_(1, self._matrix_1_, term, post, update)
-            case 2:
-                self._add_(2, self._matrix_2_, term, post, update)
-            case 3:
-                self._add_(3, self._matrix_3_, term, post, update)
-            case 4:
-                self._add_(4, self._matrix_4_, term, post, update)
+        self._add_(brk, self._submatrices_[brk], term, post, update)
     
     def _remove_(self, id: int, matrix: MatrixData, term: str, postID: str = None) -> Posting|SortedList[Posting]:
         try:
@@ -177,58 +162,40 @@ class Matrix:
         Returns:
             Posting|SortedList[Posting]: the Posting or list of Postings removed.
         """
-        brk: int = self._choose_submatrix_(term)
         try:
-            match brk:
-                case 1:
-                    return self._remove_(1, self._matrix_1_, term, postID)
-                case 2:
-                    return self._remove_(2, self._matrix_2_, term, postID)
-                case 3:
-                    return self._remove_(3, self._matrix_3_, term, postID)
-                case 4:
-                    return self._remove_(4, self._matrix_4_, term, postID)
+            brk: int = self._choose_submatrix_(term)
+            return self._remove_(brk, self._submatrices_[brk], term, postID)
         except MatrixException:
             pass
     
     def size(self) -> int:
         """Returns the current size of the matrix. Does not include matrix sections offloaded to files."""
-        return self._matrix_1_size_ + self._matrix_2_size_ + self._matrix_3_size_ + self._matrix_4_size_
+        return sum(self._sizes_)
     
     def scan_size(self) -> int:
-        """Returns true total size of the matrix, inclduing matrix sections offloaded to files. First offloads any data currently in matrix."""
+        """Returns true total size of the matrix, including matrix sections offloaded to files. First offloads any data currently in matrix."""
         self.save()
         size = 0
-        for i in range(1, 5):
+        for i in range(self._matrix_count_):
             data = self._load_submatrix_(i)
             size += len(data)
         return size
     
     def save(self) -> None:
         """Save the matrix to json files."""
-        data = self._load_submatrix_(1)
-        with open(self._filename_ + "1.json", "w") as f:
-            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_1_).items()}, f, indent = 4)
-            self._matrix_1_.clear()
-            self._matrix_1_size_ = 0
+        meta = {
+            "filename": self._filename_,
+            "breakpoints": self._breakpoints_
+        }
+        with open(f"{self._root_}/meta.json", "w") as f:
+            json.dump(meta, f, indent = 4)
         
-        data = self._load_submatrix_(2)
-        with open(self._filename_ + "2.json", "w") as f:
-            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_2_).items()}, f, indent = 4)
-            self._matrix_2_.clear()
-            self._matrix_2_size_ = 0
-        
-        data = self._load_submatrix_(3)
-        with open(self._filename_ + "3.json", "w") as f:
-            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_3_).items()}, f, indent = 4)
-            self._matrix_3_.clear()
-            self._matrix_3_size_ = 0
-        
-        data = self._load_submatrix_(4)
-        with open(self._filename_ + "4.json", "w") as f:
-            json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._matrix_4_).items()}, f, indent = 4)
-            self._matrix_4_.clear()
-            self._matrix_4_size_ = 0
+        for i in range(self._matrix_count_):
+            data = self._load_submatrix_(i)
+            with open(f"{self._root_}/{self._filename_}{i}.json", "w") as f:
+                json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._submatrices_[i]).items()}, f, indent = 4)
+                self._submatrices_[i].clear()
+                self._sizes_[i] = 0
     
     def _load_submatrix_(self, id: int) -> MatrixData:
         """Load a partial matrix.
@@ -242,12 +209,12 @@ class Matrix:
         Returns:
             MatrixData: the loaded submatrix.
         """
-        if not isinstance(id, int) or id < 1 or id > 4:
+        if not isinstance(id, int) or id < 0 or id > self._matrix_count_:
             raise MatrixException(f"_load_submatrix_: invalid id: {id}")
         
-        path = Path(f"{self._filename_}{id}.json")
+        path = Path(f"{self._root_}/{self._filename_}{id}.json")
         path.touch()
-        with open(f"{self._filename_}{id}.json", "r") as f:
+        with open(f"{self._root_}/{self._filename_}{id}.json", "r") as f:
             try:
                 data = json.loads(f.read())
             except JSONDecodeError:
@@ -285,24 +252,28 @@ class Matrix:
         return matrix
     
     @staticmethod
-    def load(filename: str = "matrix") -> Matrix:
+    def load(folder: str = "index") -> Matrix:
         """Load a matrix from save files.
 
         Args:
-            filename (str, optional): the filename to load from. Defaults to "matrix".
+            folder (str, optional): the folder containing the matrix. Defaults to "index".
 
         Returns:
             Matrix: a new Matrix object with the loaded data.
         """
+        data = []
+        count = 0
         try:
-            with open(f"{filename}1.json", "r") as f:
-                data1 = json.load(f)
-            with open(f"{filename}2.json", "r") as f:
-                data2 = json.load(f)
-            with open(f"{filename}3.json", "r") as f:
-                data3 = json.load(f)
-            with open(f"{filename}4.json", "r") as f:
-                data4 = json.load(f)
-            return Matrix([data1, data2, data3, data4], filename)
+            with open(f"{folder}/meta.json", "r") as f:
+                meta: dict = json.load(f)
         except FileNotFoundError:
-            raise MatrixException(f"Could not find file to load Matrix: {filename}")
+            raise MatrixException(f"Index metadata not found at: {folder}")
+        
+        while True:
+            try:
+                with open(f"{folder}/{meta['filename']}{count}.json", "r") as f:
+                    data.append(json.load(f))
+            except FileNotFoundError:
+                break
+            count += 1
+        return Matrix(data, folder, meta["filename"], meta["breakpoints"])

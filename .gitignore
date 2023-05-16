@@ -152,7 +152,11 @@ cython_debug/
 #.idea/
 
 data/
+index/
 *.json
 summary.txt
 
 test.py
+
+*.zip
+milestone[1-3].pdf

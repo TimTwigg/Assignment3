@@ -1,11 +1,7 @@
-from tests.test_matrix import test_matrix
-import time
+from tests.compare import compare
 
 def main():
-    start = time.time()
-    test_matrix()
-    end = time.time()
-    print(f"Time Taken: {(end - start) * 10**3}")
+    compare()
 
 if __name__ == "__main__":
     main()

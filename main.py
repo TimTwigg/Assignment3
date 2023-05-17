@@ -3,7 +3,8 @@ import argparse
 import time
 from src.indexer import Indexer, Site
 from src.matrix import  Matrix, Posting
-from src.query import searchIndex
+from src.query import Queryier
+# from src.queryC import searchIndex
 
 def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = False, printing: bool = True, maxDocs: int = None, breakpoints: list[str] = ["a", "i", "r"]):
     time_start = time.process_time()
@@ -58,15 +59,16 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = Fal
 
 def queryIndex(indexFolderPath: str = "index") -> None:
     print("Search Index:", indexFolderPath)
+    q = Queryier(indexFolderPath)
     while True:
         query = input("q:> ")
         if len(query.strip()) < 1:
             break
         time_start = time.process_time_ns()
-        results = searchIndex(query, indexFolderPath)
+        results = q.searchIndex(query)
         time_end = time.process_time_ns()
-        for r in results:
-            print(f"    {r}")
+        # for r in results:
+        #     print(f"    {r}")
         print(f"  Results: {len(results)}")
         print(f"  Time: {(time_end-time_start) / 10**6} ms")
 

@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
 import warnings
 import json
-from nltk.stem import PorterStemmer
+from nltk.stem import SnowballStemmer
 from src.helpers import tokenize, tag_visible, computeWordFrequencies
 
 warnings.filterwarnings("ignore", category = XMLParsedAsHTMLWarning)
@@ -31,7 +31,7 @@ class Indexer:
             self._dataset = SMALL_DATASET_ROOT
 
         self._getNextUrl = (url for url in Path(self._dataset).glob("**/*.json"))
-        self.stemmer = PorterStemmer()
+        self.stemmer = SnowballStemmer("english")
     
     def _parse_html_(self, html: str) -> list:
         soup = BeautifulSoup(html, "lxml")

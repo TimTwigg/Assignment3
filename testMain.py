@@ -1,12 +1,12 @@
-from src.refactor import refactor
-from tests.analyse import analyse
-from src.query import searchIndex
-
-breakpoints = sorted([*"0123456789abcdefghijklmnopqrstuvwxyz", *[f"{l}m" for l in "abcdefghijklmnopqrstuvwxyz"]])
+# from src.refactor import refactor
+# from tests.analyse import analyse
+from tests.generateIndex import generateMatrix
+# from src.query import Queryier
 
 def main():
-    refactor("indexLarge", "matrix", breakpoints, True, True)
+    # refactor("indexLarge", "matrix", breakpoints, True, True)
     # analyse()
+    generateMatrix("testIndex")
 
 if __name__ == "__main__":
     main()

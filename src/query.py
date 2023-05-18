@@ -2,6 +2,7 @@ import json
 from msgspec.json import decode
 from nltk.stem import SnowballStemmer
 import time
+import csv
 from src.helpers import tokenize
 
 class QueryException(Exception):
@@ -82,6 +83,15 @@ class Queryier:
             return data
         except FileNotFoundError:
             return {}
+    
+    def getDocs(self) -> dict[int: str]:
+        """Load the documents dict"""
+        docs = {}
+        with open(f"{self.indexLoc}/documents.csv", "r") as f:
+            reader = csv.reader(f, delimiter = ",")
+            for row in reader:
+                docs[int(row[0])] = row[1]
+        return docs
 
     def merge(self, data1: set[int], data2: set[int]) -> set[int]:
         """Merge two sets together, leaving both untouched."""
@@ -150,4 +160,10 @@ class Queryier:
         for r in results:
             out = self.merge(out, self.toIdList(r))
         
-        return out
+        # change ids to urls
+        urls: list[str] = []
+        docs = self.getDocs()
+        for id in out:
+            urls.append(docs[id])
+        
+        return urls

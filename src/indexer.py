@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from bs4.builder import XMLParsedAsHTMLWarning
 import warnings
 import json
+from typing import Tuple
 from nltk.stem import SnowballStemmer
 from src.helpers import tokenize, tag_visible, computeWordFrequencies
 
@@ -14,9 +15,10 @@ LARGE_DATASET_ROOT = "data/developer_dataset"
 STOP_WORDS_FILE = "data/stop_words.txt"
 
 class Site:
-    def __init__(self, path: Path, tokens: dict[str: int]):
+    def __init__(self, path: Path, tokens: dict[str: int], url: str):
         self.path: Path = path
         self.tokens: dict[str: int] = tokens
+        self.url: str = url
 
 class Indexer:
     def __init__(self, dataset: str = "test"):
@@ -41,7 +43,7 @@ class Indexer:
         tokens = [self.stemmer.stem(tok) for t in texts for tok in tokenize(t)]
         return tokens
     
-    def _tokenize_(self, url: Path) -> dict[str: int]:
+    def _tokenize_(self, url: Path) -> Tuple[dict[str: int], str]:
         # load file
         with url.open("r") as f:
             data = json.loads(f.read())
@@ -49,11 +51,11 @@ class Indexer:
         html: str = data["content"]
         # parse html
         tokens = self._parse_html_(html)
-        return computeWordFrequencies(tokens)
+        return computeWordFrequencies(tokens), data["url"]
     
     def getNextSite(self) -> Site:
         try:
-            url = next(self._getNextUrl)
+            file = next(self._getNextUrl)
         except StopIteration:
             return None
-        return Site(url, self._tokenize_(url))
+        return Site(file, *self._tokenize_(file))

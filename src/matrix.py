@@ -5,6 +5,7 @@ import json
 from json import JSONDecodeError
 from copy import deepcopy
 from pathlib import Path
+import csv
 
 class MatrixException(Exception):
     pass
@@ -45,11 +46,12 @@ class Posting:
 MatrixData = dict[str: SortedList[Posting]]
 
 class Matrix:
-    def __init__(self, data: list[MatrixData] = [], folder: str = "index", filename: str = "matrix", breakpoints: list[str] = ["a", "i", "r"], clean: bool = False):
+    def __init__(self, data: list[MatrixData] = [], documents: dict[int: str] = {}, folder: str = "index", filename: str = "matrix", breakpoints: list[str] = ["a", "i", "r"], clean: bool = False):
         """Create a new Matrix object.
 
         Args:
             data (MatrixData, optional): if provided, creates the Matrix from the given previous matrix data.
+            documents (dict[int: str], optional): if provided, creates the Matrix with the given documents.
             folder (str, optional): folder where index is stored. Defaults to "index".
             filename (str, optional): the filename for the matrix files. Defaults to "matrix".
             breakpoints (list[str], optional): the breakpoints to segment the matrix on. Defaults to ["a", "i", "r"].
@@ -58,6 +60,7 @@ class Matrix:
         self._breakpoints_ = breakpoints
         self._matrix_count_ = len(self._breakpoints_) + 1
         self._submatrices_: dict[int: MatrixData] = {i: {} for i in range(self._matrix_count_)}
+        self._documents_: dict[int: str] = documents
         self._sizes_: list[int] = [0 for _ in range(self._matrix_count_)]
         self._filename_ = filename
         self._root_ = folder
@@ -83,6 +86,10 @@ class Matrix:
         for i in range(self._matrix_count_):
             path = Path(f"{self._root_}/{self._filename_}{i}.json")
             path.unlink(missing_ok = True)
+        path = Path(f"{self._root_}/meta.json")
+        path.unlink(missing_ok = True)
+        path = Path(f"{self._root_}/documents.csv")
+        path.unlink(missing_ok = True)
     
     def __str__(self) -> str:
         return "Matrix:\n" + "\n  +\n".join("\n  ".join([f"{k}: {v}" for k,v in m.items()]) for _,m in self._submatrices_.items())
@@ -123,7 +130,7 @@ class Matrix:
             matrix[term] = SortedList([post])
             self._increment_size(id)
 
-    def add(self, term: str, post: Posting, update: bool = True) -> None:
+    def add(self, term: str, post: Posting, url: str, update: bool = True) -> None:
         """Insert a new document to the matrix for the given term.
         Adds the term if it does not yet exist in the matrix.
         
@@ -134,10 +141,13 @@ class Matrix:
         Args:
             term (str): the term to create or update. \n
             post (Posting): the Posting to add to term's value. \n
+            url (str): the url of the document \n
             update (bool, optional): Sets behavior for post matching on insertion. Defaults to True.
         """
         brk: int = self._choose_submatrix_(term)
         self._add_(brk, self._submatrices_[brk], term, post, update)
+        if post.id not in self._documents_:
+            self._documents_[post.id] = url
     
     def _remove_(self, id: int, matrix: MatrixData, term: str, postID: int = None) -> Posting|SortedList[Posting]:
         # remove a post from term's list, or remove the term entirely.
@@ -195,15 +205,22 @@ class Matrix:
             "filename": self._filename_,
             "breakpoints": self._breakpoints_
         }
+        # save metadata
         with open(f"{self._root_}/meta.json", "w") as f:
             json.dump(meta, f, indent = 4)
         
+        # save index files
         for i in range(self._matrix_count_):
             data = self._load_submatrix_(i)
             with open(f"{self._root_}/{self._filename_}{i}.json", "w") as f:
                 json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._submatrices_[i]).items()}, f, indent = 4)
                 self._submatrices_[i].clear()
                 self._sizes_[i] = 0
+        
+        # save documents
+        with open(f"{self._root_}/documents.csv", newline = "", mode = "w") as f:
+            writer = csv.writer(f, delimiter = ",")
+            writer.writerows(self._documents_.items())
     
     def _load_submatrix_(self, id: int) -> MatrixData:
         """Load a partial matrix.
@@ -271,12 +288,14 @@ class Matrix:
         """
         data = []
         count = 0
+        # load metadata
         try:
             with open(f"{folder}/meta.json", "r") as f:
                 meta: dict = json.load(f)
         except FileNotFoundError:
             raise MatrixException(f"Index metadata not found at: {folder}")
         
+        # load index files
         while True:
             try:
                 with open(f"{folder}/{meta['filename']}{count}.json", "r") as f:
@@ -286,4 +305,12 @@ class Matrix:
             except JSONDecodeError:
                 pass
             count += 1
-        return Matrix(data, folder, meta["filename"], meta["breakpoints"])
+            
+        # load documents
+        docs = {}
+        with open(f"{folder}/documents.csv", "r") as f:
+            reader = csv.reader(f, delimiter = ",")
+            for row in reader:
+                docs[int(row[0])] = row[1]
+        
+        return Matrix(data, docs, folder, meta["filename"], meta["breakpoints"])

@@ -14,10 +14,7 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
         printing (bool, optional): whether to print progress markers. Defaults to True.
         clean (bool, optional): whether to delete the old index. Defaults to False.
     """
-    if printing:
-        print("Begin Refactoring")
-        print("Breakpoints:", breakpoints)
-    
+        
     try:
         with open(f"{indexPath}/meta.json", "r") as f:
             meta = json.load(f)
@@ -29,6 +26,10 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
     
     if filename == rfName:
         raise RefactorException(f"New index filename cannot be the same as the original index filename.")
+    
+    if printing:
+        print("Begin Refactoring")
+        print("Breakpoints:", breakpoints)
     
     brks = iter(breakpoints + [None, None])
     brk = next(brks)

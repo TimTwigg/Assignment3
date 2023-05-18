@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from sortedcontainers import SortedList
 import json
 from json import JSONDecodeError
-from copy import deepcopy
+import heapq
 from pathlib import Path
 import csv
 
@@ -64,6 +64,7 @@ class Matrix:
         self._sizes_: list[int] = [0 for _ in range(self._matrix_count_)]
         self._filename_ = filename
         self._root_ = folder
+        self._counter_: int = 0
         
         # create folder
         path = Path() / self._root_
@@ -192,7 +193,6 @@ class Matrix:
     
     def scan_size(self) -> int:
         """Returns true total size of the matrix, including matrix sections offloaded to files. First offloads any data currently in matrix."""
-        self.save()
         size = 0
         for i in range(self._matrix_count_):
             data = self._load_submatrix_(i)
@@ -201,6 +201,16 @@ class Matrix:
     
     def save(self) -> None:
         """Save the matrix to json files."""
+        # dump index files
+        for i in range(self._matrix_count_):
+            with open(f"{self._root_}/{self._filename_}{i}_partial{self._counter_}.json", "w") as f:
+                json.dump({k: [p.toDict() for p in v] for k,v in self._submatrices_[i].items()}, f, indent = 4)
+                self._submatrices_[i].clear()
+                self._sizes_[i] = 0
+        self._counter_ += 1
+    
+    def finalize(self) -> None:
+        """Merge the partial matrices and save final index."""
         meta = {
             "filename": self._filename_,
             "breakpoints": self._breakpoints_
@@ -209,37 +219,46 @@ class Matrix:
         with open(f"{self._root_}/meta.json", "w") as f:
             json.dump(meta, f, indent = 4)
         
-        # save index files
-        for i in range(self._matrix_count_):
-            data = self._load_submatrix_(i)
-            with open(f"{self._root_}/{self._filename_}{i}.json", "w") as f:
-                json.dump({k: [p.toDict() for p in v] for k,v in self._merge_matrices_(data, self._submatrices_[i]).items()}, f, indent = 4)
-                self._submatrices_[i].clear()
-                self._sizes_[i] = 0
-        
         # save documents
         with open(f"{self._root_}/documents.csv", newline = "", mode = "w") as f:
             writer = csv.writer(f, delimiter = ",")
             writer.writerows(self._documents_.items())
+        
+        # merge partials
+        for i in range(self._matrix_count_):
+            matrices = [self._load_submatrix_(i, p) for p in range(self._counter_)]
+            matrix = self._merge_matrices_(matrices)
+            with open(f"{self._root_}/{self._filename_}{i}.json", "w") as f:
+                json.dump({k: [p.toDict() for p in v] for k,v in matrix.items()}, f, indent = 4)
+        
+        # delete partials
+        for p in Path(self._root_).glob("*partial*.*"):
+            p.unlink()
     
-    def _load_submatrix_(self, id: int) -> MatrixData:
+    def _load_submatrix_(self, id: int, pid: int = None) -> MatrixData:
         """Load a partial matrix.
 
         Args:
             id (int): the submatrix number to load.
+            pid (int): the partial id number of the submatrix to load.
 
         Raises:
-            MatrixException: if id is invalid.
+            MatrixException: if id or pid is invalid.
 
         Returns:
             MatrixData: the loaded submatrix.
         """
         if not isinstance(id, int) or id < 0 or id > self._matrix_count_:
             raise MatrixException(f"_load_submatrix_: invalid id: {id}")
+        elif pid is not None and (not isinstance(pid, int) or pid < 0 or pid >= self._counter_):
+            raise MatrixException(f"_load_submatrix_: invalid pid: {pid}")
         
-        path = Path(f"{self._root_}/{self._filename_}{id}.json")
+        if pid is not None:
+            path = Path(f"{self._root_}/{self._filename_}{id}_partial{pid}.json")
+        else:
+            path = Path(f"{self._root_}/{self._filename_}{id}.json")
         path.touch()
-        with open(f"{self._root_}/{self._filename_}{id}.json", "r") as f:
+        with path.open(mode = "r") as f:
             try:
                 data = json.loads(f.read())
             except JSONDecodeError:
@@ -247,34 +266,42 @@ class Matrix:
         
         return {k: SortedList((Posting(**p) for p in v)) for k,v in data.items()}
     
-    def _merge_matrices_(self, matrixA: MatrixData, matrixB: MatrixData) -> MatrixData:
-        """Merges two MatrixData matrices. Leaves both input matrices untouched.
+    def _merge_matrices_(self, matrices: list[MatrixData]) -> MatrixData:
+        """Merge a list of matrices.
 
         Args:
-            matrixA (MatrixData): the first matrix
-            matrixB (MatrixData): the second matix
-        
-        Raises:
-            MatrixException: if either input matrix is None
+            matrices (list[MatrixData]): the list of submatrices to merge
 
         Returns:
             MatrixData: the resultant merged matrix.
         """
-        if matrixA is None or matrixB is None:
-            raise MatrixException("_merge_matrices: Can't merge None")
         
-        matrix = deepcopy(matrixA)
-        for k,v in matrixB.items():
-            for post in v:
-                if k not in matrix:
-                    matrix[k] = SortedList([post])
-                    continue
-                
-                if post in matrix[k]:
-                    matrix[k][matrix[k].index(k)].frequency += post.frequency
-                else:
-                    matrix[k].add(post)
+        matrix: MatrixData = {}
+        matrices = [sorted(m.items()) for m in matrices]
+        temp = SortedList()
+        current: str = None
+        for term,postings in heapq.merge(*matrices, key = lambda x: x[0]):
+            if current is None or term != current:
+                if current is not None:
+                    matrix[current] = temp
+                temp = SortedList()
+                current = term
+            temp.update(postings)
+        matrix[current] = temp
+
         return matrix
+    
+        # for k,v in matrixB.items():
+        #     for post in v:
+        #         if k not in matrix:
+        #             matrix[k] = SortedList([post])
+        #             continue
+                
+        #         if post in matrix[k]:
+        #             matrix[k][matrix[k].index(k)].frequency += post.frequency
+        #         else:
+        #             matrix[k].add(post)
+        # return matrix
     
     @staticmethod
     def load(folder: str = "index") -> Matrix:

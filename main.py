@@ -58,9 +58,14 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         if maxDocs is not None and count >= maxDocs:
             break
     
-    time_end = time.process_time()
-    print(f"\nFinished Dataset: {count} pages.")
     matrix.save()
+    if printing:
+        print(f"\nFinished Dataset: {count} pages.")
+        print("Consolidating Index: ", end = "")
+    matrix.finalize()
+    if printing:
+        print("Done")
+    time_end = time.process_time()
     
     # save summary stats
     sizes = [os.stat(f"index/matrix{i}.json").st_size for i in range(matrix._matrix_count_)]

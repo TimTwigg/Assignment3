@@ -192,11 +192,11 @@ class Matrix:
         return sum(self._sizes_)
     
     def scan_size(self) -> int:
-        """Returns true total size of the matrix, including matrix sections offloaded to files. First offloads any data currently in matrix."""
+        """Returns the number of unique tokens in the matrix files."""    
         size = 0
         for i in range(self._matrix_count_):
-            data = self._load_submatrix_(i)
-            size += len(data)
+            with Path(f"{self._root_}/{self._filename_}{i}.csv").open(mode = "rb", newline = "") as f:
+                size += sum(1 for _ in f)
         return size
     
     def save(self) -> None:

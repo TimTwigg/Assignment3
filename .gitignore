@@ -154,6 +154,7 @@ cython_debug/
 data/
 index/
 *.json
+*.csv
 summary.txt
 
 test.py

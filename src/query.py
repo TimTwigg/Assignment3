@@ -1,7 +1,8 @@
 import json
-from msgspec.json import decode
+# from msgspec.json import decode
 from nltk.stem import SnowballStemmer
-import time
+# import time
+from typing import Iterable
 import csv
 from src.helpers import tokenize
 
@@ -65,7 +66,7 @@ class Queryier:
                 return r[term]
         return None
 
-    def get(self, filename: str) -> dict[str: IndexData]:
+    def get(self, filename: str) -> Iterable[list[str]]:
         """Load the data from an index file.
         
         Args:
@@ -74,15 +75,22 @@ class Queryier:
         Returns:
             dict[str: IndexData]: the submatrix loaded from the file. Returns an empty dict if the file was not found.
         """
+        # try:
+        #     start = time.process_time_ns()
+        #     with open(filename, "r") as f:
+        #         data = decode(f.read())
+        #     end = time.process_time_ns()
+        #     print("Get:", (end-start) / 10**6, "ms")
+        #     return data
+        # except FileNotFoundError:
+        #     return {}
         try:
-            start = time.process_time_ns()
-            with open(filename, "r") as f:
-                data = decode(f.read())
-            end = time.process_time_ns()
-            print("Get:", (end-start) / 10**6, "ms")
-            return data
+            with open(filename, mode = "r", encoding = "utf-8") as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    yield row
         except FileNotFoundError:
-            return {}
+            raise StopIteration
     
     def getDocs(self) -> dict[int: str]:
         """Load the documents dict"""
@@ -124,7 +132,6 @@ class Queryier:
         terms.sort()
         
         id = -1
-        data = {}
         brk = next(brks)
         # for each token in the query
         for term in terms:
@@ -139,12 +146,16 @@ class Queryier:
                     while brk is not None and term >= brk:
                         id += 1
                         brk = next(brks)
-                    data = self.get(f"{self.indexLoc}/{self.filename}{id}.json")
+                    # data = self.get(f"{self.indexLoc}/{self.filename}{id}.csv")
+                for key,rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
+                    if key == term:
+                        results = json.loads(rawData)
+                        break
                 # add the postings for the term to the results
-                resultDocs[term] = data[term]
+                resultDocs[term] = results
                 # add to cache
-                self._add_cache_(term, data[term])
-            except KeyError:
+                self._add_cache_(term, results)
+            except NameError:
                 # if the term is not found in the index
                 # currently ignores this failure
                 continue

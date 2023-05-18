@@ -1,4 +1,5 @@
 import json
+import csv
 from pathlib import Path
 
 class RefactorException(Exception):
@@ -43,8 +44,10 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
         nonlocal out, outId, brk
         if printing:
             print("Saving Index Segment:", outId)
-        with open(f"{indexPath}/{rfName}{outId}.json", "w") as f:
-            json.dump(out, f, indent = 4)
+        with open(f"{indexPath}/{rfName}{outId}.csv", mode = "a", newline = "", encoding = "utf-8") as f:
+            # json.dump(out, f, indent = 4)
+            writer = csv.writer(f)
+            writer.writerows([k, json.dumps(v)] for k,v in out.items())
             out.clear()
             outId += 1
             brk = next(brks)
@@ -61,8 +64,10 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
         # get the next index file
         if len(data) < 1:
             try:
-                with open(f"{indexPath}/{filename}{id}.json", "r") as f:
-                    data.update(json.load(f))
+                with open(f"{indexPath}/{filename}{id}.csv", mode = "r", encoding = "utf-8") as f:
+                    # data.update(json.load(f))
+                    reader = csv.reader(f)
+                    data.update({r[0]: json.loads(r[1]) for r in reader})
                     id += 1
             except FileNotFoundError:
                 break
@@ -82,11 +87,11 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
         if printing:
             print("Cleaning Old Index")
         id = 0
-        path = Path(f"{indexPath}/{filename}{id}.json")
+        path = Path(f"{indexPath}/{filename}{id}.csv")
         while path.exists():
             path.unlink()
             id += 1
-            path = Path(f"{indexPath}/{filename}{id}.json")
+            path = Path(f"{indexPath}/{filename}{id}.csv")
     
     if printing:
         print("Refactoring Complete")

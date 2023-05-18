@@ -203,8 +203,10 @@ class Matrix:
         """Save the matrix to json files."""
         # dump index files
         for i in range(self._matrix_count_):
-            with open(f"{self._root_}/{self._filename_}{i}_partial{self._counter_}.json", "w") as f:
-                json.dump({k: [p.toDict() for p in v] for k,v in self._submatrices_[i].items()}, f, indent = 4)
+            with open(f"{self._root_}/{self._filename_}{i}_partial{self._counter_}.csv", mode = "w", encoding = "utf-8", newline = "") as f:
+                # json.dump({k: [p.toDict() for p in v] for k,v in self._submatrices_[i].items()}, f, indent = 4)
+                writer = csv.writer(f)
+                writer.writerows([k, json.dumps([p.toDict() for p in v])] for k,v in self._submatrices_[i].items())
                 self._submatrices_[i].clear()
                 self._sizes_[i] = 0
         self._counter_ += 1
@@ -228,8 +230,10 @@ class Matrix:
         for i in range(self._matrix_count_):
             matrices = [self._load_submatrix_(i, p) for p in range(self._counter_)]
             matrix = self._merge_matrices_(matrices)
-            with open(f"{self._root_}/{self._filename_}{i}.json", "w") as f:
-                json.dump({k: [p.toDict() for p in v] for k,v in matrix.items()}, f, indent = 4)
+            with open(f"{self._root_}/{self._filename_}{i}.csv", mode = "w", encoding = "utf-8", newline = "") as f:
+                # json.dump({k: [p.toDict() for p in v] for k,v in matrix.items()}, f, indent = 4)
+                writer = csv.writer(f)
+                writer.writerows([k, json.dumps([p.toDict() for p in v])] for k,v in matrix.items())
         
         # delete partials
         for p in Path(self._root_).glob("*partial*.*"):
@@ -254,15 +258,17 @@ class Matrix:
             raise MatrixException(f"_load_submatrix_: invalid pid: {pid}")
         
         if pid is not None:
-            path = Path(f"{self._root_}/{self._filename_}{id}_partial{pid}.json")
+            path = Path(f"{self._root_}/{self._filename_}{id}_partial{pid}.csv")
         else:
-            path = Path(f"{self._root_}/{self._filename_}{id}.json")
+            path = Path(f"{self._root_}/{self._filename_}{id}.csv")
         path.touch()
-        with path.open(mode = "r") as f:
-            try:
-                data = json.loads(f.read())
-            except JSONDecodeError:
-                data = {}
+        with path.open(mode = "r", encoding = "utf-8") as f:
+            reader = csv.reader(f)
+            data = {r[0]: json.loads(r[1]) for r in reader}
+            # try:
+                # data = json.loads(f.read())
+            # except JSONDecodeError:
+            #     data = {}
         
         return {k: SortedList((Posting(**p) for p in v)) for k,v in data.items()}
     

@@ -68,7 +68,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     time_end = time.process_time()
     
     # save summary stats
-    sizes = [os.stat(f"index/matrix{i}.json").st_size for i in range(matrix._matrix_count_)]
+    sizes = [os.stat(f"index/matrix{i}.csv").st_size for i in range(matrix._matrix_count_)]
     total = sum(sizes)
     with open("summary.txt", "w") as f:
         f.write(f"Number of pages: {count}\nNumber of unique tokens: {matrix.scan_size()}\n" +
@@ -81,6 +81,8 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
 
 def queryIndex(indexFolderPath: str = "index") -> None:
     print("Search Index:", indexFolderPath)
+    print("Enter query to search. To exit, press enter on a blank query.")
+    print()
     q = Queryier(indexFolderPath)
     while True:
         query = input("q:> ")

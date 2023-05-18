@@ -42,10 +42,10 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - when the index is queried, check the results against the updated/deleted pages indeces.
 6. query caching [`done']
 7. optimization
-    - rework index files as csv files with [term, postings] rows
-        - would allow partial loading of file instead of whole thing, plus no json decoding
-        - term would be str, postings could be stringified json dict to be decoded if necessary
-    - rework indexing to save partials and merge at the end rather than loading/merging/dumping each time?
+    - rework index files as csv files with [term, postings] rows [`done`]
+        - would allow partial loading of file instead of whole thing, plus no json decoding [`done`]
+        - term would be str, postings could be stringified json dict to be decoded if necessary [`done`]
+    - rework indexing to save partials and merge at the end rather than loading/merging/dumping each time [`done`]
     - conjunctive processing
     - tiered indeces
         - extra segmented for each token to make it easy to find the best n pages for each token

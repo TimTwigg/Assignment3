@@ -4,9 +4,19 @@ import time
 from src.indexer import Indexer, Site
 from src.matrix import  Matrix, Posting
 from src.query import Queryier
-# from src.queryC import searchIndex
 
-def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = False, printing: bool = True, maxDocs: int = None, breakpoints: list[str] = ["a", "i", "r"]):
+def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = True, printing: bool = True, maxDocs: int = None, breakpoints: list[str] = ["a", "i", "r"]):
+    """Create an index from a dataset.
+
+    Args:
+        dataset (str, optional): which dataset to index, can be "test" or "large". Defaults to "test".
+        chunkSize (int, optional): the number of documents to keep in memory at a time. Defaults to 100.
+        offload (bool, optional): whether to save partial indexes during the process, merging them at the end. Defaults to True.
+        printing (bool, optional): whether to print progress reports during index creation. Defaults to True.
+        maxDocs (int, optional): the limit on how many documents to index. Defaults to None.
+        breakpoints (list[str], optional): the breakpoints to divide the tokens by. Defaults to ["a", "i", "r"].
+    """
+    
     time_start = time.process_time()
     if printing:
         print("Index Dataset:", dataset)
@@ -23,13 +33,17 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = Fal
     if printing:
         print("Done")
         print("Begin Indexing")
+    
     count = 0
     tokens: Site = indexer.getNextSite()
+    # while there's another document to index
     while tokens:
+        # insert each token to the matrix
         for k,v in tokens.tokens.items():
             matrix.add(k, Posting(hash(tokens.path.name), v))
         tokens = indexer.getNextSite()
         count += 1
+        # print progress and offload every chunkSize documents
         if count % chunkSize == 0:
             if printing:
                 print(f"\nIndexed {count} pages.")
@@ -39,6 +53,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = Fal
                 matrix.save()
                 if printing:
                     print("Done")
+        # break if maxDocs documents have been indexed
         if maxDocs is not None and count >= maxDocs:
             break
     
@@ -46,6 +61,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 100, offload: bool = Fal
     print(f"\nFinished Dataset: {count} pages.")
     matrix.save()
     
+    # save summary stats
     sizes = [os.stat(f"index/matrix{i}.json").st_size for i in range(matrix._matrix_count_)]
     total = sum(sizes)
     with open("summary.txt", "w") as f:
@@ -79,13 +95,13 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dataset", help = "Which dataset to index, defaults to testing set. [Indexer Only]", nargs = "?", type = str, default = "test")
     parser.add_argument("-c", "--chunksize", help = "Indexing Chunk Size, defaults to 100. [Indexer Only]", nargs = "?", type = int, default = 100)
     parser.add_argument("-o", "--offload", help = "Offload chunks as they are loaded, defaults to False. [Indexer Only]", action = argparse.BooleanOptionalAction)
-    parser.add_argument("-p", "--printing", help = "Don't print progress.", action = argparse.BooleanOptionalAction)
+    parser.add_argument("-p", "--printing", help = "Print progress.", action = argparse.BooleanOptionalAction)
     parser.add_argument("-m", "--maxDocs", help = "Set maximum number of documents to index. Defaults to no limit. [Indexer Only]", nargs = "?", type = int, default = -1)
     parser.add_argument("-b", "--breakpoints", help = "Set breakpoints for indexer. [Indexer only]", nargs = "+", type = str, default = ["a", "i", "r"])
     parser.add_argument("-i", "--indexSource", help = "The index to search. Defaults to testing index. [Querier only]", nargs = "?", type = str, default = "indexSmall")
     args = parser.parse_args()
     
     if args.index:
-        CreateIndex(args.dataset, args.chunksize, args.offload, not args.printing, None if args.maxDocs < 0 else args.maxDocs, args.breakpoints)
+        CreateIndex(args.dataset, args.chunksize, args.offload, args.printing, None if args.maxDocs < 0 else args.maxDocs, args.breakpoints)
     elif args.query:
         queryIndex(args.indexSource)

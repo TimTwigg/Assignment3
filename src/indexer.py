@@ -35,14 +35,19 @@ class Indexer:
     
     def _parse_html_(self, html: str) -> list:
         soup = BeautifulSoup(html, "lxml")
+        # extract all visible text segments
         texts = [t for t in soup.findAll(string = True) if tag_visible(t)]
+        # stem and tokenize the text segments
         tokens = [self.stemmer.stem(tok) for t in texts for tok in tokenize(t)]
         return tokens
     
     def _tokenize_(self, url: Path) -> dict[str: int]:
+        # load file
         with url.open("r") as f:
             data = json.loads(f.read())
+        # get html content
         html: str = data["content"]
+        # parse html
         tokens = self._parse_html_(html)
         return computeWordFrequencies(tokens)
     

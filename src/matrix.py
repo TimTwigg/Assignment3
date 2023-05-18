@@ -16,8 +16,7 @@ class Posting:
     
     def __init__(self, id: int, frequency: int):
         if not isinstance(id, int):
-            # raise MatrixException("Posting id must be int")
-            id = int(id)
+            raise MatrixException("Posting id must be int")
         elif not isinstance(frequency, int):
             raise MatrixException("Posting frequency must be int")
         
@@ -80,6 +79,7 @@ class Matrix:
             self._clean_submatrices_()
     
     def _clean_submatrices_(self) -> None:
+        """Delete existing matrix files."""
         for i in range(self._matrix_count_):
             path = Path(f"{self._root_}/{self._filename_}{i}.json")
             path.unlink(missing_ok = True)
@@ -105,8 +105,10 @@ class Matrix:
         return self._matrix_count_ - 1
     
     def _add_(self, id: int, matrix: MatrixData, term: str, post: Posting, update: bool = True) -> None:
+        # add a post to the given matrix for the given term
         if term in matrix:
             if post in matrix[term]:
+                # if the document is already in the list for term
                 if update:
                     i = matrix[term].index(post)
                     matrix[term][i].frequency += post.frequency
@@ -114,8 +116,10 @@ class Matrix:
                     matrix[term].discard(post)
                     matrix[term].add(post)
             else:
+                # if the document is not yet in the list for term
                 matrix[term].add(post)
         else:
+            # if the term is not in the matrix
             matrix[term] = SortedList([post])
             self._increment_size(id)
 
@@ -136,11 +140,14 @@ class Matrix:
         self._add_(brk, self._submatrices_[brk], term, post, update)
     
     def _remove_(self, id: int, matrix: MatrixData, term: str, postID: int = None) -> Posting|SortedList[Posting]:
+        # remove a post from term's list, or remove the term entirely.
         try:
+            # remove the entire term
             if postID is None:
                 t = matrix[term]
                 del matrix[term]
                 self._increment_size(id, -1)
+            # remove just the post
             else:
                 i = matrix[term].index(Posting(postID, 0))
                 t = matrix[term][i]

@@ -30,14 +30,14 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
     if filename == rfName:
         raise RefactorException(f"New index filename cannot be the same as the original index filename.")
     
-    breakpoints.extend([None, None])
-    brks = iter(breakpoints)
+    brks = iter(breakpoints + [None, None])
     brk = next(brks)
     id = 0
     outId = 0
     data: dict = {}
     out = {}
     
+    # local func to save index segment to file
     def dump() -> None:
         nonlocal out, outId, brk
         if printing:
@@ -49,6 +49,7 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
             brk = next(brks)
     
     while True:
+        # for keys in current data, add to new index segment, dumping if a key is reached which is in the subsequent segment
         for k in sorted(data.keys()):
             if brk is None or k < brk:
                 out[k] = data.pop(k)
@@ -56,6 +57,7 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
                 dump()
                 break
         
+        # get the next index file
         if len(data) < 1:
             try:
                 with open(f"{indexPath}/{filename}{id}.json", "r") as f:
@@ -66,13 +68,15 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
     
     dump()
     
+    # save metadata
     with open(f"{indexPath}/{'meta' if clean else rfName + 'meta'}.json", "w") as f:
         meta = {
             "filename": rfName,
-            "breakpoints": breakpoints[:-2]
+            "breakpoints": breakpoints
         }
         json.dump(meta, f, indent = 4)
     
+    # delete old index files
     if clean:
         if printing:
             print("Cleaning Old Index")

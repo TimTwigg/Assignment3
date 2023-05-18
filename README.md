@@ -35,14 +35,17 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 
 ### Milestone 3
 
+- what to do if a query term is not in the index?
+
 5. updating the index
     - don't edit the original index. maintain extra indeces for updated and deleted pages.
         - when the index is queried, check the results against the updated/deleted pages indeces.
-6. query caching
+6. query caching [`done']
 7. optimization
     - conjunctive processing
     - tiered indeces
         - extra segmented for each token to make it easy to find the best n pages for each token
+    - streamline index file loading
 8. ranked retrieval
     - add more info to Posting
         - use tf-idf score instead of term frequency

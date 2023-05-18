@@ -11,12 +11,12 @@ class QueryException(Exception):
 IndexData = list[dict[str: int]]
 
 class Queryier:    
-    def __init__(self, indexLoc: str, cache_size: int = 10):
+    def __init__(self, indexLoc: str, cache_size: int = 25):
         """Create Queryier object to query an index.
 
         Args:
             indexLoc (str): the folder containing the index.
-            cache_size (int, optional): how many query terms to store in the cache. Defaults to 10.
+            cache_size (int, optional): how many query terms to store in the cache. Defaults to 25.
 
         Raises:
             QueryException: if the index is not found or if the index metadata file is missing/malformed.

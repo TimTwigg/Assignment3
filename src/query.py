@@ -75,15 +75,6 @@ class Queryier:
         Returns:
             dict[str: IndexData]: the submatrix loaded from the file. Returns an empty dict if the file was not found.
         """
-        # try:
-        #     start = time.process_time_ns()
-        #     with open(filename, "r") as f:
-        #         data = decode(f.read())
-        #     end = time.process_time_ns()
-        #     print("Get:", (end-start) / 10**6, "ms")
-        #     return data
-        # except FileNotFoundError:
-        #     return {}
         try:
             with open(filename, mode = "r", encoding = "utf-8") as f:
                 reader = csv.reader(f)
@@ -146,10 +137,9 @@ class Queryier:
                     while brk is not None and term >= brk:
                         id += 1
                         brk = next(brks)
-                    # data = self.get(f"{self.indexLoc}/{self.filename}{id}.csv")
-                for key,rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
+                for key,*rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
                     if key == term:
-                        results = json.loads(rawData)
+                        results = [json.loads(d) for d in rawData]
                         break
                 # add the postings for the term to the results
                 resultDocs[term] = results

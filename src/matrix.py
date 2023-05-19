@@ -195,7 +195,7 @@ class Matrix:
         """Returns the number of unique tokens in the matrix files."""    
         size = 0
         for i in range(self._matrix_count_):
-            with Path(f"{self._root_}/{self._filename_}{i}.csv").open(mode = "rb", newline = "") as f:
+            with Path(f"{self._root_}/{self._filename_}{i}.csv").open(mode = "rb") as f:
                 size += sum(1 for _ in f)
         return size
     
@@ -204,9 +204,8 @@ class Matrix:
         # dump index files
         for i in range(self._matrix_count_):
             with open(f"{self._root_}/{self._filename_}{i}_partial{self._counter_}.csv", mode = "w", encoding = "utf-8", newline = "") as f:
-                # json.dump({k: [p.toDict() for p in v] for k,v in self._submatrices_[i].items()}, f, indent = 4)
                 writer = csv.writer(f)
-                writer.writerows([k, json.dumps([p.toDict() for p in v])] for k,v in self._submatrices_[i].items())
+                writer.writerows([k, *[json.dumps(p.toDict()) for p in v]] for k,v in self._submatrices_[i].items())
                 self._submatrices_[i].clear()
                 self._sizes_[i] = 0
         self._counter_ += 1
@@ -231,9 +230,8 @@ class Matrix:
             matrices = [self._load_submatrix_(i, p) for p in range(self._counter_)]
             matrix = self._merge_matrices_(matrices)
             with open(f"{self._root_}/{self._filename_}{i}.csv", mode = "w", encoding = "utf-8", newline = "") as f:
-                # json.dump({k: [p.toDict() for p in v] for k,v in matrix.items()}, f, indent = 4)
                 writer = csv.writer(f)
-                writer.writerows([k, json.dumps([p.toDict() for p in v])] for k,v in matrix.items())
+                writer.writerows([k, *[json.dumps(p.toDict()) for p in v]] for k,v in matrix.items())
         
         # delete partials
         for p in Path(self._root_).glob("*partial*.*"):
@@ -264,11 +262,7 @@ class Matrix:
         path.touch()
         with path.open(mode = "r", encoding = "utf-8") as f:
             reader = csv.reader(f)
-            data = {r[0]: json.loads(r[1]) for r in reader}
-            # try:
-                # data = json.loads(f.read())
-            # except JSONDecodeError:
-            #     data = {}
+            data = {r[0]: [json.loads(i) for i in r[1:]] for r in reader}
         
         return {k: SortedList((Posting(**p) for p in v)) for k,v in data.items()}
     
@@ -297,18 +291,6 @@ class Matrix:
 
         return matrix
     
-        # for k,v in matrixB.items():
-        #     for post in v:
-        #         if k not in matrix:
-        #             matrix[k] = SortedList([post])
-        #             continue
-                
-        #         if post in matrix[k]:
-        #             matrix[k][matrix[k].index(k)].frequency += post.frequency
-        #         else:
-        #             matrix[k].add(post)
-        # return matrix
-    
     @staticmethod
     def load(folder: str = "index") -> Matrix:
         """Load a matrix from save files.
@@ -330,6 +312,7 @@ class Matrix:
         
         # load index files
         while True:
+            # TODO
             try:
                 with open(f"{folder}/{meta['filename']}{count}.json", "r") as f:
                     data.append(json.load(f))

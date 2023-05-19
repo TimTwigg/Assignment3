@@ -74,7 +74,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         f.write(f"Number of pages: {count}\nNumber of unique tokens: {matrix.scan_size()}\n" +
             "\n".join(f"  Matrix {i} Filesize: {size / 1024:.4f} kb | {size / 1024**2:.4f} mb | {size / 1024**3:.4f} gb" for i,size in enumerate(sizes)) +
             f"\nTotal Index File Size: {total / 1024:.4f} kb | {total / 1024**2:.4f} mb | {total / 1024**3:.4f} gb" +
-            f"\nTime to Create Index: {time_end - time_start} seconds")
+            f"\nTime to Create Index: {time_end-time_start:.2f} seconds | {(time_end-time_start)/60:.2f} minutes")
 
     print("Time:", time_end-time_start, "seconds")
     print("\nIndexing Complete")

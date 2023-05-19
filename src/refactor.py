@@ -45,9 +45,8 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
         if printing:
             print("Saving Index Segment:", outId)
         with open(f"{indexPath}/{rfName}{outId}.csv", mode = "a", newline = "", encoding = "utf-8") as f:
-            # json.dump(out, f, indent = 4)
             writer = csv.writer(f)
-            writer.writerows([k, json.dumps(v)] for k,v in out.items())
+            writer.writerows([k, *[json.dumps(p) for p in v]] for k,v in out.items())
             out.clear()
             outId += 1
             brk = next(brks)
@@ -65,9 +64,8 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
         if len(data) < 1:
             try:
                 with open(f"{indexPath}/{filename}{id}.csv", mode = "r", encoding = "utf-8") as f:
-                    # data.update(json.load(f))
                     reader = csv.reader(f)
-                    data.update({r[0]: json.loads(r[1]) for r in reader})
+                    data.update({r[0]: [json.loads(i) for i in r[1:]] for r in reader})
                     id += 1
             except FileNotFoundError:
                 break

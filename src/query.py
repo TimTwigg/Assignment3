@@ -1,7 +1,5 @@
-import json
-# from msgspec.json import decode
+from msgspec.json import decode
 from nltk.stem import SnowballStemmer
-# import time
 from typing import Iterable
 import csv
 from src.helpers import tokenize
@@ -29,7 +27,7 @@ class Queryier:
         
         try:
             with open(f"{indexLoc}/meta.json", "r") as f:
-                meta = json.load(f)
+                meta = decode(f.read())
             self.filename: str = meta["filename"]
             self.breakpoints: list[str] = meta["breakpoints"]
         except FileNotFoundError:
@@ -38,6 +36,7 @@ class Queryier:
             raise QueryException(f"Malformed metadata file at: {indexLoc}")
         
         self.stemmer = SnowballStemmer("english")
+        self.docs = self.getDocs()
     
     def _add_cache_(self, term: str, results: list[str]) -> None:
         """Add a term and its index results to the cache, replacing the oldest cache entry if the cache is full.
@@ -139,7 +138,7 @@ class Queryier:
                         brk = next(brks)
                 for key,*rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
                     if key == term:
-                        results = [json.loads(d) for d in rawData]
+                        results = [decode(d) for d in rawData]
                         break
                 # add the postings for the term to the results
                 resultDocs[term] = results
@@ -163,8 +162,7 @@ class Queryier:
         
         # change ids to urls
         urls: list[str] = []
-        docs = self.getDocs()
         for id in out:
-            urls.append(docs[id])
+            urls.append(self.docs[id])
         
         return urls

@@ -32,6 +32,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 4. write module to search/query Matrix
     - write in python [`done`]
     - convert to cython for faster querying?
+        - get and getDocs methods are the slowest part
 
 ### Milestone 3
 
@@ -46,6 +47,9 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - would allow partial loading of file instead of whole thing, plus no json decoding [`done`]
         - term would be str, postings could be stringified json dict to be decoded if necessary [`done`]
     - rework indexing to save partials and merge at the end rather than loading/merging/dumping each time [`done`]
+    - use linecache module to jump to certain lines?
+        - would need another index rework:
+            - first line of file is list of tokens in that file?
     - conjunctive processing
     - tiered indeces
         - extra segmented for each token to make it easy to find the best n pages for each token

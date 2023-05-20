@@ -1,8 +1,7 @@
 from msgspec.json import decode
 from nltk.stem import SnowballStemmer
-from typing import Iterable, TextIO
+from typing import TextIO
 import csv
-from itertools import islice
 from src.helpers import tokenize
 
 class QueryException(Exception):
@@ -21,11 +20,7 @@ class Queryier:
         Raises:
             QueryException: if the index is not found or if the index metadata file is missing/malformed.
         """
-        self.CACHE_SIZE = cache_size
-        self._cache_: list[dict[str:list[str]]] = []
-        self.pointer = 0
-        self.indexLoc = indexLoc
-        
+        # read meta data
         try:
             with open(f"{indexLoc}/meta.json", "r") as f:
                 meta = decode(f.read())
@@ -36,17 +31,23 @@ class Queryier:
         except KeyError:
             raise QueryException(f"Malformed metadata file at: {indexLoc}")
         
+        # read meta index
         try:
             with open(f"{indexLoc}/meta_index.json", "r") as f:
                 self._meta_index_ = decode(f.read())
         except FileNotFoundError:
             raise QueryException(f"Index meta_index file not found at: {indexLoc}")
         
+        self.indexLoc = indexLoc
+        self.pointer = 0
+        self.CACHE_SIZE = cache_size
+        self._cache_: list[dict[str:list[str]]] = []
         self.stemmer = SnowballStemmer("english")
         self.docs = self.getDocs()
         self._files_: list[TextIO] = [open(f"{indexLoc}/{self.filename}{i}.csv", "r") for i in range(len(self.breakpoints)+1)]
     
     def __del__(self):
+        """Destructor. Closes all index files."""
         for f in self._files_:
             f.close()
     
@@ -76,30 +77,26 @@ class Queryier:
             if term in r:
                 return r[term]
         return None
+    
+    def getToken(self, token: str) -> list[dict[str:int]]:
+        """Get the postings list for the token.
 
-    def get(self, filename: str) -> Iterable[list[str]]:
-        """Load the data from an index file.
-        
         Args:
-            filename (str): the filename to open.
+            token (str): the token to search.
 
         Returns:
-            dict[str: IndexData]: the submatrix loaded from the file. Returns an empty dict if the file was not found.
+            list[dict[str:int]]: the postings for that token.
         """
-        try:
-            with open(filename, mode = "r", encoding = "utf-8") as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    yield row
-        except FileNotFoundError:
-            raise StopIteration
-    
-    def getToken(self, token: str) -> list[dict]:
+        # position in file and file number of token
         pos,fileno = self._meta_index_[token]
+        # the file containing the token
         f: TextIO = self._files_[fileno]
+        # set the file pointer position
         f.seek(pos)
+        # read that line
         line = f.readline()
         reader = csv.reader([line])
+        # return the decoded items in the line
         return [decode(d) for row in reader for d in row if d != token]
     
     def getDocs(self) -> dict[int: str]:
@@ -110,17 +107,6 @@ class Queryier:
             for row in reader:
                 docs[int(row[0])] = row[1]
         return docs
-
-    def merge(self, data1: set[int], data2: set[int]) -> set[int]:
-        """Merge two sets together, leaving both untouched."""
-        return data1.intersection(data2)
-
-    def toIdList(self, data: IndexData) -> set[int]:
-        """Extract ids from IndexData"""
-        s = set()
-        for d in data:
-            s.add(d["id"])
-        return s
 
     def searchIndex(self, query: str) -> list[str]:
         """Query an index.
@@ -134,15 +120,11 @@ class Queryier:
         """
         
         resultDocs: dict[str: IndexData] = {}
-        brks = iter(["/"] + self.breakpoints + [None])
         
         # stem query tokens
         terms = [self.stemmer.stem(w) for w in tokenize(query)]
         # sort to streamline index retrieval
         terms.sort()
-        
-        id = -1
-        brk = next(brks)
         # for each token in the query
         for term in terms:
             # check cache
@@ -151,15 +133,6 @@ class Queryier:
                 resultDocs[term] = cacheResult
                 continue
             try:
-                # skip through to the correct index file and load it
-                if brk is not None and term >= brk:
-                    while brk is not None and term >= brk:
-                        id += 1
-                        brk = next(brks)
-                # for key,*rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
-                #     if key == term:
-                #         results = [decode(d) for d in rawData]
-                #         break
                 results = self.getToken(term)
                 # add the postings for the term to the results
                 resultDocs[term] = results
@@ -173,13 +146,13 @@ class Queryier:
         # sort results by increasing size
         results = iter(sorted(resultDocs.values(), key = lambda x: len(x)))
         try:
-            out: set[int] = self.toIdList(next(results))
+            out: set[int] = set(d["id"] for d in next(results))
         except StopIteration:
             # return empty list if no results were found
             return []
         # merge results starting with smallest result for faster merging
         for r in results:
-            out = self.merge(out, self.toIdList(r))
+            out = out.intersection(set(d["id"] for d in r))
         
         # change ids to urls
         urls: list[str] = []

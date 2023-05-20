@@ -264,9 +264,13 @@ class Matrix:
             p.unlink()
         
         # scan index and make index of index
+        if printing:
+            print("Indexing Index...")
         index = self._index_matrix_()
         
         # save index of index
+        if printing:
+            print("Saving Meta Index...")
         with open(f"{self._root_}/meta_index.json", "w") as f:
             json.dump(index, f, indent = 4)
     
@@ -313,13 +317,20 @@ class Matrix:
         matrices = [sorted(m.items()) for m in matrices]
         temp = SortedList()
         current: str = None
+        
+        # merge the sorted matrices with heapq and read in order
         for term,postings in heapq.merge(*matrices, key = lambda x: x[0]):
+            # if it is a new term
             if current is None or term != current:
+                # if this is not the first one then save temp
                 if current is not None:
                     matrix[current] = temp
+                # reset temp and set current to the new term
                 temp = SortedList()
                 current = term
+            # update temp
             temp.update(postings)
+        # save final temp
         matrix[current] = temp
 
         return matrix
@@ -345,14 +356,13 @@ class Matrix:
         
         # load index files
         while True:
-            # TODO
             try:
-                with open(f"{folder}/{meta['filename']}{count}.json", "r") as f:
-                    data.append(decode(f.read()))
+                with open(f"{folder}/{meta['filename']}{count}.csv", mode = "r", encoding = "utf-8") as f:
+                    reader = csv.reader(f)
+                    d = {r[0]: [decode(i) for i in r[1:]] for r in reader}
+                    data.append({k: SortedList((Posting(**p) for p in v)) for k,v in d.items()})
             except FileNotFoundError:
                 break
-            except JSONDecodeError:
-                pass
             count += 1
             
         # load documents

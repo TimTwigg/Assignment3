@@ -107,6 +107,14 @@ class Queryier:
             for row in reader:
                 docs[int(row[0])] = row[1]
         return docs
+    
+    def rankSort(self, results: list[dict[str:int]]) -> None:
+        """Inplace sort the results for a token
+
+        Args:
+            results (list[dict[str:int]]): the results to sort.
+        """
+        results.sort(key = lambda x: x["frequency"], reverse = True)
 
     def searchIndex(self, query: str) -> list[str]:
         """Query an index.
@@ -134,6 +142,8 @@ class Queryier:
                 continue
             try:
                 results = self.getToken(term)
+                # sort the results by rank
+                self.rankSort(results)
                 # add the postings for the term to the results
                 resultDocs[term] = results
                 # add to cache

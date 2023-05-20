@@ -83,20 +83,27 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     print("Time:", time_end-time_start, "seconds")
     print("\nIndexing Complete")
 
-def queryIndex(indexFolderPath: str = "index") -> None:
+def queryIndex(indexFolderPath: str = "index", printNum: int = 0) -> None:
+    """Query an index.
+
+    Args:
+        indexFolderPath (str, optional): the folder containing the index to query. Defaults to "index".
+        printNum (int, optional): the number of results to print. Defaults to 0.
+    """
     print("Search Index:", indexFolderPath)
     print("Enter query to search. To exit, press enter on a blank query.")
-    print()
     q = Queryier(indexFolderPath)
     while True:
-        query = input("q:> ")
+        query = input("\nq:> ")
         if len(query.strip()) < 1:
             break
         time_start = time.process_time_ns()
         results = q.searchIndex(query)
         time_end = time.process_time_ns()
-        # for r in results:
-        #     print(f"    {r}")
+        for i,r in enumerate(results, start = 1):
+            if i > printNum:
+                break
+            print(f"    {r}")
         print(f"  Results: {len(results)}")
         print(f"  Time: {(time_end-time_start) / 10**6} ms")
 
@@ -133,7 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--chunksize", help = "Indexing Chunk Size, defaults to 1000. [Indexer Only]", nargs = "?", type = int, default = 1000)
     parser.add_argument("-o", "--offload", help = "Offload chunks as they are loaded, defaults to False. [Indexer Only]", action = argparse.BooleanOptionalAction)
     parser.add_argument("-p", "--printing", help = "Print progress.", action = argparse.BooleanOptionalAction)
-    parser.add_argument("-m", "--maxDocs", help = "Set maximum number of documents to index. Defaults to no limit. [Indexer Only]", nargs = "?", type = int, default = -1)
+    parser.add_argument("-m", "--maxDocs", help = "Set maximum number of documents to index. For Querier, sets the number of results to print. Defaults to None. [Indexer or Querier]", nargs = "?", type = int, default = -1)
     parser.add_argument("-b", "--breakpoints", help = "Set breakpoints for indexer. [Indexer or Refactoring]", nargs = "+", type = str, default = ["a", "i", "r"])
     parser.add_argument("-i", "--indexSource", help = "The index to search. Defaults to testing index. [Querier or Refactoring]", nargs = "?", type = str, default = "indexSmall")
     args = parser.parse_args()
@@ -141,6 +148,6 @@ if __name__ == "__main__":
     if args.index:
         CreateIndex(args.dataset, args.chunksize, args.offload, args.printing, None if args.maxDocs < 0 else args.maxDocs, args.breakpoints)
     elif args.query:
-        queryIndex(args.indexSource)
+        queryIndex(args.indexSource, max(args.maxDocs, 0))
     elif args.refactor:
         refactorIndex(args.indexSource, args.breakpoints, args.printing)

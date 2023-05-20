@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from sortedcontainers import SortedList
 from msgspec.json import decode
 import json
-from json import JSONDecodeError
 import heapq
 from pathlib import Path
 import csv

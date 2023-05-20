@@ -156,8 +156,7 @@ index/
 *.json
 *.csv
 summary.txt
-
 test.py
-
 *.zip
 milestone[1-3].pdf
+*.jpg

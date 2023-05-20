@@ -12,7 +12,6 @@ warnings.filterwarnings("ignore", category = MarkupResemblesLocatorWarning)
 
 SMALL_DATASET_ROOT = "data/analyst_dataset"
 LARGE_DATASET_ROOT = "data/developer_dataset"
-STOP_WORDS_FILE = "data/stop_words.txt"
 
 class Site:
     def __init__(self, path: Path, tokens: dict[str: int], url: str):

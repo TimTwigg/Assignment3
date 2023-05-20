@@ -1,6 +1,7 @@
 import os
 import argparse
 import time
+import json
 from src.indexer import Indexer, Site
 from src.matrix import  Matrix, Posting
 from src.query import Queryier
@@ -17,6 +18,9 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         maxDocs (int, optional): the limit on how many documents to index. Defaults to None.
         breakpoints (list[str], optional): the breakpoints to divide the tokens by. Defaults to ["a", "i", "r"].
     """
+    
+    if len(breakpoints) == 1 and breakpoints[0].lower() == "none":
+        breakpoints = []
     
     time_start = time.process_time()
     if printing:
@@ -62,7 +66,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     if printing:
         print(f"\nFinished Dataset: {count} pages.")
         print("Consolidating Index: ", end = "")
-    matrix.finalize()
+    matrix.finalize(printing)
     if printing:
         print("Done")
     time_end = time.process_time()
@@ -91,18 +95,34 @@ def queryIndex(indexFolderPath: str = "index") -> None:
         time_start = time.process_time_ns()
         results = q.searchIndex(query)
         time_end = time.process_time_ns()
-        for r in results:
-            print(f"    {r}")
+        # for r in results:
+        #     print(f"    {r}")
         print(f"  Results: {len(results)}")
         print(f"  Time: {(time_end-time_start) / 10**6} ms")
 
 def refactorIndex(index: str, breakpoints: list[str], printing: bool):
-    if len(breakpoints) == 1 and breakpoints[0].lower() == "long":
-        breakpoints = sorted([*"0123456789abcdefghijklmnopqrstuvwxyz", *[f"{l}m" for l in "abcdefghijklmnopqrstuvwxyz"]])
+    if len(breakpoints) == 1:
+        if breakpoints[0].lower() == "long":
+            breakpoints = sorted([*"0123456789abcdefghijklmnopqrstuvwxyz", *[f"{l}m" for l in "abcdefghijklmnopqrstuvwxyz"]])
+        elif breakpoints[0].lower() == "mid":
+            breakpoints = [*"0123456789abcdefghijklmnopqrstuvwxyz"]
+        elif breakpoints[0].lower() == "short":
+            breakpoints = [*"048cgkosw"]
+        elif breakpoints[0].lower() == "none":
+            breakpoints = []
+    filename = "matrix"
     try:
-        refactor(index, "matrix", breakpoints, printing, True)
+        refactor(index, filename, breakpoints, printing, True)
     except RefactorException:
-        refactor(index, "index", breakpoints, printing, True)
+        filename = "index"
+        refactor(index, filename, breakpoints, printing, True)
+    
+    # reform the meta index
+    matrix = Matrix(folder = index, breakpoints = breakpoints, filename = filename)
+    matrix._matrix_count_ = len(breakpoints)+1
+    meta_index = matrix._index_matrix_()
+    with open(f"{index}/meta_index.json", "w") as f:
+        json.dump(meta_index, f, indent = 4)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "Run Indexer and Search Engine")

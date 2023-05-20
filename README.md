@@ -29,10 +29,9 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - test increasing number of breakpoints and reducing chunk size on indexing speed. [`done`]
     - could have fewer segments during indexing and then split them afterwards for faster querying. [`done`]
     - set to create files in folder with extra metadata file for breakpoints and filecount? [`done`]
-4. write module to search/query Matrix
+4. write module to search/query Matrix[`done`]
     - write in python [`done`]
     - convert to cython for faster querying?
-        - get and getDocs methods are the slowest part
 
 ### Milestone 3
 
@@ -47,13 +46,13 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - would allow partial loading of file instead of whole thing, plus no json decoding [`done`]
         - term would be str, postings could be stringified json dict to be decoded if necessary [`done`]
     - rework indexing to save partials and merge at the end rather than loading/merging/dumping each time [`done`]
-    - use linecache module to jump to certain lines?
-        - would need another index rework:
-            - first line of file is list of tokens in that file?
+    - use linecache module to jump to certain lines? [`done`]
+        - would need another index rework [`done`]
+        - achieved with file.seek [`done`]
     - conjunctive processing
     - tiered indeces
         - extra segmented for each token to make it easy to find the best n pages for each token
-    - streamline index file loading
+    - streamline index file loading [`done`]
 8. ranked retrieval
     - add more info to Posting
         - use tf-idf score instead of term frequency

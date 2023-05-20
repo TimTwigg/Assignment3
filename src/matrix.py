@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from sortedcontainers import SortedList
+from msgspec.json import decode
 import json
 from json import JSONDecodeError
 import heapq
@@ -209,22 +210,45 @@ class Matrix:
                 self._submatrices_[i].clear()
                 self._sizes_[i] = 0
         self._counter_ += 1
+        
+    def _index_matrix_(self) -> dict[str: int]:
+        """Index the matrix.
+        
+        Returns:
+            dict[str: int]: the index of [str -> byte position]
+        """
+        index = {}
+        for i in range(self._matrix_count_):
+            with open(f"{self._root_}/{self._filename_}{i}.csv", mode = "r", encoding = "utf-8") as f:
+                while True:
+                    pos = f.tell()
+                    tokenID = f.readline().split(",")[0]
+                    if len(tokenID.strip()) < 1:
+                        break
+                    index[tokenID] = [pos, i]
+        return index
     
-    def finalize(self) -> None:
+    def finalize(self, printing: bool = False) -> None:
         """Merge the partial matrices and save final index."""
         meta = {
             "filename": self._filename_,
             "breakpoints": self._breakpoints_
         }
+        if printing:
+            print("\nSaving Metadata...")
         # save metadata
         with open(f"{self._root_}/meta.json", "w") as f:
             json.dump(meta, f, indent = 4)
         
+        if printing:
+            print("Saving Documents...")
         # save documents
         with open(f"{self._root_}/documents.csv", newline = "", mode = "w") as f:
             writer = csv.writer(f, delimiter = ",")
             writer.writerows(self._documents_.items())
         
+        if printing:
+            print("Merging Index...")
         # merge partials
         for i in range(self._matrix_count_):
             matrices = [self._load_submatrix_(i, p) for p in range(self._counter_)]
@@ -233,9 +257,18 @@ class Matrix:
                 writer = csv.writer(f)
                 writer.writerows([k, *[json.dumps(p.toDict()) for p in v]] for k,v in matrix.items())
         
+        if printing:
+            print("Cleaning Partial Indeces...")
         # delete partials
         for p in Path(self._root_).glob("*partial*.*"):
             p.unlink()
+        
+        # scan index and make index of index
+        index = self._index_matrix_()
+        
+        # save index of index
+        with open(f"{self._root_}/meta_index.json", "w") as f:
+            json.dump(index, f, indent = 4)
     
     def _load_submatrix_(self, id: int, pid: int = None) -> MatrixData:
         """Load a partial matrix.
@@ -262,7 +295,7 @@ class Matrix:
         path.touch()
         with path.open(mode = "r", encoding = "utf-8") as f:
             reader = csv.reader(f)
-            data = {r[0]: [json.loads(i) for i in r[1:]] for r in reader}
+            data = {r[0]: [decode(i) for i in r[1:]] for r in reader}
         
         return {k: SortedList((Posting(**p) for p in v)) for k,v in data.items()}
     
@@ -306,7 +339,7 @@ class Matrix:
         # load metadata
         try:
             with open(f"{folder}/meta.json", "r") as f:
-                meta: dict = json.load(f)
+                meta: dict = decode(f.read())
         except FileNotFoundError:
             raise MatrixException(f"Index metadata not found at: {folder}")
         
@@ -315,7 +348,7 @@ class Matrix:
             # TODO
             try:
                 with open(f"{folder}/{meta['filename']}{count}.json", "r") as f:
-                    data.append(json.load(f))
+                    data.append(decode(f.read()))
             except FileNotFoundError:
                 break
             except JSONDecodeError:

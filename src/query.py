@@ -1,7 +1,8 @@
 from msgspec.json import decode
 from nltk.stem import SnowballStemmer
-from typing import Iterable
+from typing import Iterable, TextIO
 import csv
+from itertools import islice
 from src.helpers import tokenize
 
 class QueryException(Exception):
@@ -35,8 +36,19 @@ class Queryier:
         except KeyError:
             raise QueryException(f"Malformed metadata file at: {indexLoc}")
         
+        try:
+            with open(f"{indexLoc}/meta_index.json", "r") as f:
+                self._meta_index_ = decode(f.read())
+        except FileNotFoundError:
+            raise QueryException(f"Index meta_index file not found at: {indexLoc}")
+        
         self.stemmer = SnowballStemmer("english")
         self.docs = self.getDocs()
+        self._files_: list[TextIO] = [open(f"{indexLoc}/{self.filename}{i}.csv", "r") for i in range(len(self.breakpoints)+1)]
+    
+    def __del__(self):
+        for f in self._files_:
+            f.close()
     
     def _add_cache_(self, term: str, results: list[str]) -> None:
         """Add a term and its index results to the cache, replacing the oldest cache entry if the cache is full.
@@ -82,11 +94,19 @@ class Queryier:
         except FileNotFoundError:
             raise StopIteration
     
+    def getToken(self, token: str) -> list[dict]:
+        pos,fileno = self._meta_index_[token]
+        f: TextIO = self._files_[fileno]
+        f.seek(pos)
+        line = f.readline()
+        reader = csv.reader([line])
+        return [decode(d) for row in reader for d in row if d != token]
+    
     def getDocs(self) -> dict[int: str]:
         """Load the documents dict"""
         docs = {}
         with open(f"{self.indexLoc}/documents.csv", "r") as f:
-            reader = csv.reader(f, delimiter = ",")
+            reader = csv.reader(f)
             for row in reader:
                 docs[int(row[0])] = row[1]
         return docs
@@ -136,10 +156,11 @@ class Queryier:
                     while brk is not None and term >= brk:
                         id += 1
                         brk = next(brks)
-                for key,*rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
-                    if key == term:
-                        results = [decode(d) for d in rawData]
-                        break
+                # for key,*rawData in self.get(f"{self.indexLoc}/{self.filename}{id}.csv"):
+                #     if key == term:
+                #         results = [decode(d) for d in rawData]
+                #         break
+                results = self.getToken(term)
                 # add the postings for the term to the results
                 resultDocs[term] = results
                 # add to cache

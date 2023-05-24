@@ -1,5 +1,4 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from sortedcontainers import SortedList
 from msgspec.json import decode
 import json
@@ -10,12 +9,14 @@ import csv
 class MatrixException(Exception):
     pass
 
-@dataclass(order = True)
 class Posting:
     id: int
     frequency: int
+    header: bool
+    bold: bool
+    title: bool
     
-    def __init__(self, id: int, frequency: int):
+    def __init__(self, id: int, frequency: int, header: bool = False, bold: bool = False, title: bool = False):
         if not isinstance(id, int):
             raise MatrixException("Posting id must be int")
         elif not isinstance(frequency, int):
@@ -23,12 +24,29 @@ class Posting:
         
         self.id = id
         self.frequency = frequency
+        self.header = header
+        self.bold = bold
+        self.title = title
     
     def __eq__(self, other: Posting) -> bool:
         return isinstance(other, Posting) and self.id == other.id
 
     def __ne__(self, other: Posting) -> bool:
         return not self == other
+    
+    def __lt__(self, other: Posting) -> bool:
+        if not isinstance(other, Posting):
+            raise NotImplementedError()
+        return self.frequency < other.frequency
+    
+    def __le__(self, other: Posting) -> bool:
+        return self == other or self < other
+    
+    def __gt__(self, other: Posting) -> bool:
+        return not self <= other
+    
+    def __ge__(self, other: Posting) -> bool:
+        return not self < other
     
     def __add__(self, other: Posting) -> Posting:
         return Posting(self.id, self.frequency + other.frequency)
@@ -37,11 +55,19 @@ class Posting:
         self.frequency += other.frequency
         return self
     
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"Posting(id={self.id}, frequency={self.frequency})"
     
+    def sortable(self) -> int:
+        """Return int representation of posting used for sorting."""
+        # the lower the number the earlier in the list it will appear
+        return -1 * (self.frequency * \
+            (1 if not self.header else 2) * \
+            (1 if not self.bold else 2) * \
+            (1 if not self.title else 2))
+    
     def toDict(self) -> dict:
-        return {"id": self.id, "frequency": self.frequency}
+        return self.__dict__
 
 MatrixData = dict[str: SortedList[Posting]]
 
@@ -128,7 +154,7 @@ class Matrix:
                 matrix[term].add(post)
         else:
             # if the term is not in the matrix
-            matrix[term] = SortedList([post])
+            matrix[term] = SortedList([post], key = lambda x: x.sortable())
             self._increment_size(id)
 
     def add(self, term: str, post: Posting, url: str, update: bool = True) -> None:
@@ -300,7 +326,7 @@ class Matrix:
             reader = csv.reader(f)
             data = {r[0]: [decode(i) for i in r[1:]] for r in reader}
         
-        return {k: SortedList((Posting(**p) for p in v)) for k,v in data.items()}
+        return {k: SortedList((Posting(**p) for p in v), key = lambda x: x.sortable()) for k,v in data.items()}
     
     def _merge_matrices_(self, matrices: list[MatrixData]) -> MatrixData:
         """Merge a list of matrices.
@@ -312,9 +338,12 @@ class Matrix:
             MatrixData: the resultant merged matrix.
         """
         
+        if len(matrices) == 1:
+            return matrices[0]
+        
         matrix: MatrixData = {}
         matrices = [sorted(m.items()) for m in matrices]
-        temp = SortedList()
+        temp = SortedList(key = lambda x: x.sortable())
         current: str = None
         
         # merge the sorted matrices with heapq and read in order
@@ -325,7 +354,7 @@ class Matrix:
                 if current is not None:
                     matrix[current] = temp
                 # reset temp and set current to the new term
-                temp = SortedList()
+                temp = SortedList(key = lambda x: x.sortable())
                 current = term
             # update temp
             temp.update(postings)
@@ -359,7 +388,7 @@ class Matrix:
                 with open(f"{folder}/{meta['filename']}{count}.csv", mode = "r", encoding = "utf-8") as f:
                     reader = csv.reader(f)
                     d = {r[0]: [decode(i) for i in r[1:]] for r in reader}
-                    data.append({k: SortedList((Posting(**p) for p in v)) for k,v in d.items()})
+                    data.append({k: SortedList((Posting(**p) for p in v), key = lambda x: x.sortable()) for k,v in d.items()})
             except FileNotFoundError:
                 break
             count += 1

@@ -36,12 +36,17 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 ### Milestone 3
 
 - what to do if a query term is not in the index?
+    - return a "Not Found" page?
 
 5. updating the index
     - don't edit the original index. maintain extra indeces for updated and deleted pages.
         - when the index is queried, check the results against the updated/deleted pages indeces.
-6. query caching [`done']
-7. optimization
+6. index todo
+    - modify index to take text location into account so that bold/header/title text can be separated as important
+        - could just add boolean fields to Posting marking whether the word appeared in important fields
+            - one for each type so that they can be weighted differently?
+7. query caching [`done']
+8. optimization
     - rework index files as csv files with [term, postings] rows [`done`]
         - would allow partial loading of file instead of whole thing, plus no json decoding [`done`]
         - term would be str, postings could be stringified json dict to be decoded if necessary [`done`]
@@ -49,12 +54,27 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - use linecache module to jump to certain lines? [`done`]
         - would need another index rework [`done`]
         - achieved with file.seek [`done`]
-    - conjunctive processing
+    - conjunctive processing [`done`]
     - tiered indeces
         - extra segmented for each token to make it easy to find the best n pages for each token
     - streamline index file loading [`done`]
-8. ranked retrieval
+    - add document similarity checking to indexing?
+    - initally ignore stop words in query
+        - go back and use them if we don't have enough results without them
+    - thresholding
+        - lecture 19
+    - sort posting lists by importance for that term and then read only the first x postings?
+        - could speed up processing
+        - unsafe
+    - multithreading
+        - give each term to a different thread?
+9. ranked retrieval
     - add more info to Posting
         - use tf-idf score instead of term frequency
     - Pagerank idea: maintain extra index of [docID -> rank]?
     - Jaccard coefficient: intersection / union of 2 sets
+    - relevance score
+        - R(Q, D) -> score
+        - each part of the score is multiplied by a weight
+        - the weights should sum to 1 (set int values then normalize to proportion of weight)
+10. gui

@@ -1,22 +1,15 @@
 from src.matrix import Matrix, Posting
 
-def setup_matrix() -> Matrix:
-    matrix = Matrix()
-    postData = [*enumerate("123456abcdefghijklmnopqrstuvwxyz")]
-    for i,l in postData:
-        matrix.add(l, Posting(str(i), 5))
-    return matrix
-
 def test_matrix():
-    matrix = setup_matrix()
-    print(matrix)
+    # matrix = Matrix(breakpoints = [])
     
-    # test add with updating
-    matrix.add("a", Posting("0", 2))
+    # matrix.add("test", Posting(0, 2), "0")
+    # matrix.add("test", Posting(1, 5), "1")
+    # matrix.add("test", Posting(3, 1), "3")
     
-    # test removing
-    matrix.add("a", Posting("1", 2))
-    matrix.remove("b")
-    matrix.remove("a", "3")
+    # print(matrix)
     
-    print(matrix)
+    # matrix.save()
+    # matrix.finalize()
+    p = Posting(0, 2, True, True, False)
+    print(p.sortable())

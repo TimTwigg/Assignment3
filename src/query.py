@@ -3,6 +3,7 @@ from nltk.stem import SnowballStemmer
 from typing import TextIO
 import csv
 from src.helpers import tokenize
+from src.config import Config
 
 class QueryException(Exception):
     pass
@@ -45,6 +46,7 @@ class Queryier:
         self.stemmer = SnowballStemmer("english")
         self.docs = self.getDocs()
         self._files_: list[TextIO] = [open(f"{indexLoc}/{self.filename}{i}.csv", "r") for i in range(len(self.breakpoints)+1)]
+        self.config = Config()
     
     def __del__(self):
         """Destructor. Closes all index files."""
@@ -88,7 +90,7 @@ class Queryier:
             list[dict[str:int]]: the postings for that token.
         """
         # position in file and file number of token
-        pos,fileno = self._meta_index_[token]
+        pos, fileno = self._meta_index_[token]
         # the file containing the token
         f: TextIO = self._files_[fileno]
         # set the file pointer position
@@ -131,8 +133,6 @@ class Queryier:
         
         # stem query tokens
         terms = [self.stemmer.stem(w) for w in tokenize(query)]
-        # sort to streamline index retrieval
-        terms.sort()
         # for each token in the query
         for term in terms:
             # check cache
@@ -153,6 +153,9 @@ class Queryier:
                 # currently ignores this failure
                 continue
         
+        ###################################################################
+        # TODO rewrite this section to use ranked retrieval
+        
         # sort results by increasing size
         results = iter(sorted(resultDocs.values(), key = lambda x: len(x)))
         try:
@@ -168,5 +171,7 @@ class Queryier:
         urls: list[str] = []
         for id in out:
             urls.append(self.docs[id])
+        
+        ###################################################################
         
         return urls

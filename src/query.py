@@ -47,6 +47,13 @@ class Queryier:
         self.docs = self.getDocs()
         self._files_: list[TextIO] = [open(f"{indexLoc}/{self.filename}{i}.csv", "r") for i in range(len(self.breakpoints)+1)]
         self.config = Config()
+        
+        # load stopwords
+        try:
+            with open("stop_words.txt", "r") as f:
+                self.stopwords = set(self.stemmer.stem(s) for s in f.readlines())
+        except FileNotFoundError:
+            raise QueryException("Stopwords file not found")
     
     def __del__(self):
         """Destructor. Closes all index files."""
@@ -118,12 +125,12 @@ class Queryier:
         """
         results.sort(key = lambda x: x["frequency"], reverse = True)
 
-    def searchIndex(self, query: str) -> list[str]:
+    def searchIndex(self, query: str, useStopWords: bool = False) -> list[str]:
         """Query an index.
 
         Args:
             query (str): the query to search for.
-            indexLoc (str): the location of the index to query.
+            useStopWords (str, optional): whether to include stopwords in the searched-for terms. Defaults to False.
 
         Returns:
             list[str]: a list of document names that matched the query.
@@ -133,6 +140,8 @@ class Queryier:
         
         # stem query tokens
         terms = [self.stemmer.stem(w) for w in tokenize(query)]
+        if useStopWords:
+            terms = [w for w in terms if w not in self.stopwords]
         # for each token in the query
         for term in terms:
             # check cache
@@ -148,7 +157,7 @@ class Queryier:
                 resultDocs[term] = results
                 # add to cache
                 self._add_cache_(term, results)
-            except NameError:
+            except KeyError:
                 # if the term is not found in the index
                 # currently ignores this failure
                 continue
@@ -173,5 +182,8 @@ class Queryier:
             urls.append(self.docs[id])
         
         ###################################################################
+        
+        if len(urls) < self.config.k_results and not useStopWords:
+            return self.searchIndex(query, True)
         
         return urls

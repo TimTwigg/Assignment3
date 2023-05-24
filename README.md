@@ -35,9 +35,6 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 
 ### Milestone 3
 
-- what to do if a query term is not in the index?
-    - return a "Not Found" page?
-
 5. updating the index
     - don't edit the original index. maintain extra indeces for updated and deleted pages.
         - when the index is queried, check the results against the updated/deleted pages indeces.
@@ -55,12 +52,12 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - would need another index rework [`done`]
         - achieved with file.seek [`done`]
     - conjunctive processing [`done`]
-    - tiered indeces
+    - tiered indeces?
         - extra segmented for each token to make it easy to find the best n pages for each token
     - streamline index file loading [`done`]
     - add document similarity checking to indexing?
-    - initally ignore stop words in query
-        - go back and use them if we don't have enough results without them
+    - initally ignore stop words in query [`done`]
+        - go back and use them if we don't have enough results without them [`done`]
     - thresholding
         - lecture 19
     - sort posting lists by importance for that term and then read only the first x postings?
@@ -78,3 +75,5 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - each part of the score is multiplied by a weight
         - the weights should sum to 1 (set int values then normalize to proportion of weight)
 10. gui
+    - make it
+    - make NotFound page for when no results are found

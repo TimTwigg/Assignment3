@@ -2,6 +2,7 @@ from msgspec.json import decode
 from nltk.stem import SnowballStemmer
 from typing import TextIO
 import csv
+import math
 from src.helpers import tokenize
 from src.config import Config
 
@@ -27,6 +28,7 @@ class Queryier:
                 meta = decode(f.read())
             self.filename: str = meta["filename"]
             self.breakpoints: list[str] = meta["breakpoints"]
+            self.documentCount: int = meta["documentCount"]
         except FileNotFoundError:
             raise QueryException(f"Index metadata file not found at: {indexLoc}")
         except KeyError:
@@ -123,7 +125,21 @@ class Queryier:
         Args:
             results (list[dict[str:int]]): the results to sort.
         """
-        results.sort(key = lambda x: x["frequency"], reverse = True)
+        n = len(results)
+        results.sort(key = lambda x: self._tfidf_(x["frequency"], n), reverse = True)
+    
+    def _tfidf_(self, freq: int, df: int) -> float:
+        """Calculate the tf-idf weight for a term
+
+        Args:
+            freq (int): the frequency of the term in a document
+            df (int): the document frequency of that term
+
+        Returns:
+            float: the tf-idf score
+        """
+        
+        return (1 + math.log10(freq) if freq > 0 else 0) * math.log10(self.documentCount / df)
 
     def searchIndex(self, query: str, useStopWords: bool = False) -> list[str]:
         """Query an index.
@@ -163,7 +179,7 @@ class Queryier:
                 continue
         
         ###################################################################
-        # TODO rewrite this section to use ranked retrieval
+        # Old Code
         
         # sort results by increasing size
         results = iter(sorted(resultDocs.values(), key = lambda x: len(x)))
@@ -180,6 +196,9 @@ class Queryier:
         urls: list[str] = []
         for id in out:
             urls.append(self.docs[id])
+        
+        ###################################################################
+        # TODO new ranked retrieval version to replace above section
         
         ###################################################################
         

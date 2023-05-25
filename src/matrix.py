@@ -257,6 +257,7 @@ class Matrix:
         """Merge the partial matrices and save final index."""
         meta = {
             "filename": self._filename_,
+            "documentCount": len(self._documents_),
             "breakpoints": self._breakpoints_
         }
         if printing:

@@ -39,9 +39,9 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - don't edit the original index. maintain extra indeces for updated and deleted pages.
         - when the index is queried, check the results against the updated/deleted pages indeces.
 6. index todo
-    - modify index to take text location into account so that bold/header/title text can be separated as important
-        - could just add boolean fields to Posting marking whether the word appeared in important fields
-            - one for each type so that they can be weighted differently?
+    - modify index to take text location into account so that bold/header/title text can be separated as important [`done`]
+        - could just add boolean fields to Posting marking whether the word appeared in important fields [`done`]
+            - one for each type so that they can be weighted differently? [`done`]
 7. query caching [`done']
 8. optimization
     - rework index files as csv files with [term, postings] rows [`done`]

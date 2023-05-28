@@ -115,7 +115,6 @@ class Queryier:
         line = next(reader)
         # return the decoded first r items in the line
         return int(line[1]), [decode(line[i]) for i in range(2, min(self.config.r_docs, len(line)))]
-        # return [decode(line[i]) for i in range(1, len(line))]
     
     def getDocs(self) -> dict[int: tuple[str, float]]:
         """Load the documents dict"""
@@ -137,8 +136,10 @@ class Queryier:
             list[str]: a list of document names that matched the query.
         """
         
+        results: dict[str: list[dict[str: int]]] = {}
         scores: list[float] = []
         docIDs = {}
+        queryDF: dict[str: float] = {}
         
         # stem query tokens
         terms = [self.stemmer.stem(w) for w in tokenize(query)]
@@ -151,25 +152,29 @@ class Queryier:
             # check cache
             cacheResult = self._check_cache_(term)
             if cacheResult is not None:
-                queryDF = cacheResult[0]
-                postings = cacheResult[1]
+                queryDF[term] = cacheResult[0]
+                results[term] = cacheResult[1]
                 continue
-            else:
-                try:
-                    df, results = self.getToken(term)
-                    queryDF = df
-                    postings = results
-                    # add to cache
-                    self._add_cache_(term, results)
-                except KeyError:
-                    # if the term is not found in the index
-                    # currently ignores this failure
-                    continue
-            
+            try:
+                df, res = self.getToken(term)
+                queryDF[term] = df
+                results[term] = res
+                # add to cache
+                self._add_cache_(term, res)
+            except KeyError:
+                # if the term is not found in the index
+                # currently ignores this failure
+                continue
+        
+        # calculate all query term weights
+        queryDF = {term: (1 + math.log10(terms.count(term))) * math.log10(self.documentCount / queryDF[term]) for term in terms}
+        queryLength = math.sqrt(sum(v**2 for v in queryDF.values()))
+        
+        for term in terms:
             # calculate w-tq
-            wtq = (1 + math.log10(terms.count(term))) * math.log10(self.documentCount / queryDF)
+            wtq = queryDF[term] / queryLength
             # add score for this term in each doc to the running sum
-            for post in postings:
+            for post in results[term]:
                 id = post["id"]
                 tf = post["frequency"]
                 if id not in docIDs:
@@ -177,8 +182,14 @@ class Queryier:
                     scores.append(0)
                 scores[docIDs[id]] += wtq * tf
         
+        # calculate final cosine similarity scores
+        for d,i in docIDs.items():
+            scores[i] /= self.docs[d][1]
+        
+        # TODO: Add more scoring methods
+        
         # divide by normalized document length and retrieve documents in rank order
-        ranked = sorted(((d, scores[i]/self.docs[d][1]) for d,i in docIDs.items()), key = lambda x: x[1], reverse = True)
+        ranked = sorted(((d, scores[i]) for d,i in docIDs.items()), key = lambda x: x[1], reverse = True)
         
         # redo using stopwords if not enough results
         if len(ranked) < self.config.k_results and not useStopWords and removedStopWords:

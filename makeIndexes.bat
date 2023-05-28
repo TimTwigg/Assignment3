@@ -1,15 +1,11 @@
 @ECHO OFF
 
-main.py --index -d test -op
-ECHO.
-main.py --refactor -i index -b long -p
+main.py --index -d test -op -b none
 MOVE summary.txt index/summary.txt
 RENAME index indexSmall
 ECHO.
 
-main.py --index -d large -op
-ECHO.
-main.py --refactor -i index -b long -p
+main.py --index -d large -op -b none
 MOVE summary.txt index/summary.txt
 RENAME index indexLarge
 ECHO.

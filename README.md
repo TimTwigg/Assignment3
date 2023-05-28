@@ -38,7 +38,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
 5. updating the index
     - don't edit the original index. maintain extra indeces for updated and deleted pages.
         - when the index is queried, check the results against the updated/deleted pages indeces.
-6. index todo
+6. index todo [`done`]
     - modify index to take text location into account so that bold/header/title text can be separated as important [`done`]
         - could just add boolean fields to Posting marking whether the word appeared in important fields [`done`]
             - one for each type so that they can be weighted differently? [`done`]
@@ -60,20 +60,24 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - go back and use them if we don't have enough results without them [`done`]
     - thresholding
         - lecture 19
-    - sort posting lists by importance for that term and then read only the first x postings?
+    - sort posting lists by importance for that term and then read only the first x postings? [`done`]
         - could speed up processing
         - unsafe
     - multithreading
         - give each term to a different thread?
 9. ranked retrieval
-    - add more info to Posting
-        - use tf-idf score instead of term frequency
+    - add more info to Posting [`done`]
+        - use tf-idf score instead of term frequency [`done`]
+    - add more scoring info to ranking process (query.Querier.searchIndex)
+        - currently only cosine similarity (relevance)
+        - add authority score and weight them
+        - add weighting for title/header/bold
     - Pagerank idea: maintain extra index of [docID -> rank]?
     - Jaccard coefficient: intersection / union of 2 sets
     - relevance score
         - R(Q, D) -> score
         - each part of the score is multiplied by a weight
-        - the weights should sum to 1 (set int values then normalize to proportion of weight)
+        - the weights should sum to 1 (set float values then normalize to proportion of weight)
 10. gui
     - make it
     - make NotFound page for when no results are found

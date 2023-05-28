@@ -59,8 +59,13 @@ class Queryier:
     
     def __del__(self):
         """Destructor. Closes all index files."""
-        for f in self._files_:
-            f.close()
+        try:
+            for f in self._files_:
+                f.close()
+        except AttributeError:
+            # occurs when an error is thrown in the constructor before the _files_ attribute is created
+            # caught to prevent the destructor from throwing errors
+            pass
     
     def _add_cache_(self, term: str, results: list[str]) -> None:
         """Add a term and its index results to the cache, replacing the oldest cache entry if the cache is full.
@@ -73,9 +78,9 @@ class Queryier:
             self._cache_[self.pointer] = {term: results}
             self.pointer = (self.pointer + 1) % self.CACHE_SIZE
         else:
-            self._cache_.append({term: results})
+            self._cache_.append({term: results, "df": len(results)})
     
-    def _check_cache_(self, term: str) -> None|list[str]:
+    def _check_cache_(self, term: str) -> None|tuple[int, list[str]]:
         """Check if a term is in the cache.
 
         Args:
@@ -86,10 +91,10 @@ class Queryier:
         """
         for r in self._cache_:
             if term in r:
-                return r[term]
+                return r["df"], r[term]
         return None
     
-    def getToken(self, token: str) -> list[dict[str:int]]:
+    def getToken(self, token: str) -> tuple[int, list[dict[str:int]]]:
         """Get the postings list for the token.
 
         Args:
@@ -107,39 +112,19 @@ class Queryier:
         # read that line
         line = f.readline()
         reader = csv.reader([line])
-        # return the decoded items in the line
-        return [decode(d) for row in reader for d in row if d != token]
+        line = next(reader)
+        # return the decoded first r items in the line
+        return int(line[1]), [decode(line[i]) for i in range(2, min(self.config.r_docs, len(line)))]
+        # return [decode(line[i]) for i in range(1, len(line))]
     
-    def getDocs(self) -> dict[int: str]:
+    def getDocs(self) -> dict[int: tuple[str, float]]:
         """Load the documents dict"""
         docs = {}
         with open(f"{self.indexLoc}/documents.csv", "r") as f:
             reader = csv.reader(f)
             for row in reader:
-                docs[int(row[0])] = row[1]
+                docs[int(row[0])] = (row[1], float(row[2]))
         return docs
-    
-    def rankSort(self, results: list[dict[str:int]]) -> None:
-        """Inplace sort the results for a token
-
-        Args:
-            results (list[dict[str:int]]): the results to sort.
-        """
-        n = len(results)
-        results.sort(key = lambda x: self._tfidf_(x["frequency"], n), reverse = True)
-    
-    def _tfidf_(self, freq: int, df: int) -> float:
-        """Calculate the tf-idf weight for a term
-
-        Args:
-            freq (int): the frequency of the term in a document
-            df (int): the document frequency of that term
-
-        Returns:
-            float: the tf-idf score
-        """
-        
-        return (1 + math.log10(freq) if freq > 0 else 0) * math.log10(self.documentCount / df)
 
     def searchIndex(self, query: str, useStopWords: bool = False) -> list[str]:
         """Query an index.
@@ -152,57 +137,55 @@ class Queryier:
             list[str]: a list of document names that matched the query.
         """
         
-        resultDocs: dict[str: IndexData] = {}
+        scores: list[float] = []
+        docIDs = {}
         
         # stem query tokens
         terms = [self.stemmer.stem(w) for w in tokenize(query)]
-        if useStopWords:
+        if not useStopWords:
+            tempL = len(terms)
             terms = [w for w in terms if w not in self.stopwords]
+            removedStopWords = len(terms) < tempL
         # for each token in the query
         for term in terms:
             # check cache
             cacheResult = self._check_cache_(term)
             if cacheResult is not None:
-                resultDocs[term] = cacheResult
+                queryDF = cacheResult[0]
+                postings = cacheResult[1]
                 continue
-            try:
-                results = self.getToken(term)
-                # sort the results by rank
-                self.rankSort(results)
-                # add the postings for the term to the results
-                resultDocs[term] = results
-                # add to cache
-                self._add_cache_(term, results)
-            except KeyError:
-                # if the term is not found in the index
-                # currently ignores this failure
-                continue
+            else:
+                try:
+                    df, results = self.getToken(term)
+                    queryDF = df
+                    postings = results
+                    # add to cache
+                    self._add_cache_(term, results)
+                except KeyError:
+                    # if the term is not found in the index
+                    # currently ignores this failure
+                    continue
+            
+            # calculate w-tq
+            wtq = (1 + math.log10(terms.count(term))) * math.log10(self.documentCount / queryDF)
+            # add score for this term in each doc to the running sum
+            for post in postings:
+                id = post["id"]
+                tf = post["frequency"]
+                if id not in docIDs:
+                    docIDs[id] = len(docIDs)
+                    scores.append(0)
+                scores[docIDs[id]] += wtq * tf
         
-        ###################################################################
-        # Old Code
+        # divide by normalized document length and retrieve documents in rank order
+        ranked = sorted(((d, scores[i]/self.docs[d][1]) for d,i in docIDs.items()), key = lambda x: x[1], reverse = True)
         
-        # sort results by increasing size
-        results = iter(sorted(resultDocs.values(), key = lambda x: len(x)))
-        try:
-            out: set[int] = set(d["id"] for d in next(results))
-        except StopIteration:
-            # return empty list if no results were found
-            return []
-        # merge results starting with smallest result for faster merging
-        for r in results:
-            out = out.intersection(set(d["id"] for d in r))
-        
-        # change ids to urls
-        urls: list[str] = []
-        for id in out:
-            urls.append(self.docs[id])
-        
-        ###################################################################
-        # TODO new ranked retrieval version to replace above section
-        
-        ###################################################################
-        
-        if len(urls) < self.config.k_results and not useStopWords:
+        # redo using stopwords if not enough results
+        if len(ranked) < self.config.k_results and not useStopWords and removedStopWords:
             return self.searchIndex(query, True)
         
+        # convert to urls
+        urls = [self.docs[d][0] for d,_ in ranked[:self.config.k_results]]
+
+        # return top k results
         return urls

@@ -76,14 +76,6 @@ def refactor(indexPath: str, rfName: str, breakpoints: list[str], printing: bool
     
     dump()
     
-    # save metadata
-    with open(f"{indexPath}/{'meta' if clean else rfName + 'meta'}.json", "w") as f:
-        meta = {
-            "filename": rfName,
-            "breakpoints": breakpoints
-        }
-        json.dump(meta, f, indent = 4)
-    
     # delete old index files
     if clean:
         if printing:

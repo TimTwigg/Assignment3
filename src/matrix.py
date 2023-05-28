@@ -5,17 +5,13 @@ import json
 import heapq
 from pathlib import Path
 import csv
+import math
+import numpy as np
 
 class MatrixException(Exception):
     pass
 
 class Posting:
-    id: int
-    frequency: int
-    header: bool
-    bold: bool
-    title: bool
-    
     def __init__(self, id: int, frequency: int, header: bool = False, bold: bool = False, title: bool = False):
         if not isinstance(id, int):
             raise MatrixException("Posting id must be int")
@@ -58,13 +54,23 @@ class Posting:
     def __repr__(self) -> str:
         return f"Posting(id={self.id}, frequency={self.frequency})"
     
-    def sortable(self) -> int:
-        """Return int representation of posting used for sorting."""
-        # the lower the number the earlier in the list it will appear
-        return -1 * (self.frequency * \
-            (1 if not self.header else 2) * \
-            (1 if not self.bold else 2) * \
-            (1 if not self.title else 2))
+    def __hash__(self) -> int:
+        return self.id
+    
+    def tf(self) -> int:
+        """Return tf score of posting."""
+        return min(1 + math.log10(self.frequency), self.frequency)
+    
+    def tf_norm(self, length: float) -> float:
+        """Return the normalized tf score.
+
+        Args:
+            length (float): the normalized document length
+
+        Returns:
+            float: the normalized tf score
+        """
+        return min(1 + math.log10(self.frequency), self.frequency) / length
     
     def toDict(self) -> dict:
         return self.__dict__
@@ -87,6 +93,7 @@ class Matrix:
         self._matrix_count_ = len(self._breakpoints_) + 1
         self._submatrices_: dict[int: MatrixData] = {i: {} for i in range(self._matrix_count_)}
         self._documents_: dict[int: str] = documents
+        self._document_lengths_: dict[int: float] = {}
         self._sizes_: list[int] = [0 for _ in range(self._matrix_count_)]
         self._filename_ = filename
         self._root_ = folder
@@ -154,7 +161,7 @@ class Matrix:
                 matrix[term].add(post)
         else:
             # if the term is not in the matrix
-            matrix[term] = SortedList([post], key = lambda x: x.sortable())
+            matrix[term] = SortedList([post], key = lambda x: x.tf())
             self._increment_size(id)
 
     def add(self, term: str, post: Posting, url: str, update: bool = True) -> None:
@@ -175,6 +182,8 @@ class Matrix:
         self._add_(brk, self._submatrices_[brk], term, post, update)
         if post.id not in self._documents_:
             self._documents_[post.id] = url
+            self._document_lengths_[post.id] = 0
+        self._document_lengths_[post.id] += (1 + math.log10(post.frequency))**2
     
     def _remove_(self, id: int, matrix: MatrixData, term: str, postID: int = None) -> Posting|SortedList[Posting]:
         # remove a post from term's list, or remove the term entirely.
@@ -271,7 +280,7 @@ class Matrix:
         # save documents
         with open(f"{self._root_}/documents.csv", newline = "", mode = "w") as f:
             writer = csv.writer(f, delimiter = ",")
-            writer.writerows(self._documents_.items())
+            writer.writerows((i, d, math.sqrt(self._document_lengths_[i])) for i,d in self._documents_.items())
         
         if printing:
             print("Merging Index...")
@@ -281,7 +290,7 @@ class Matrix:
             matrix = self._merge_matrices_(matrices)
             with open(f"{self._root_}/{self._filename_}{i}.csv", mode = "w", encoding = "utf-8", newline = "") as f:
                 writer = csv.writer(f)
-                writer.writerows([k, *[json.dumps(p.toDict()) for p in v]] for k,v in matrix.items())
+                writer.writerows([k, len(v), *[json.dumps(p.toDict()) for p in v]] for k,v in matrix.items())
         
         if printing:
             print("Cleaning Partial Indeces...")
@@ -327,7 +336,7 @@ class Matrix:
             reader = csv.reader(f)
             data = {r[0]: [decode(i) for i in r[1:]] for r in reader}
         
-        return {k: SortedList((Posting(**p) for p in v), key = lambda x: x.sortable()) for k,v in data.items()}
+        return {k: SortedList((Posting(**p) for p in v), key = lambda x: x.tf()) for k,v in data.items()}
     
     def _merge_matrices_(self, matrices: list[MatrixData]) -> MatrixData:
         """Merge a list of matrices.
@@ -339,66 +348,33 @@ class Matrix:
             MatrixData: the resultant merged matrix.
         """
         
-        if len(matrices) == 1:
-            return matrices[0]
-        
-        matrix: MatrixData = {}
+        matrix: dict[str: list[Posting]] = {}
         matrices = [sorted(m.items()) for m in matrices]
-        temp = SortedList(key = lambda x: x.sortable())
+        temp: list[Posting] = []
         current: str = None
         
-        # merge the sorted matrices with heapq and read in order
-        for term,postings in heapq.merge(*matrices, key = lambda x: x[0]):
-            # if it is a new term
-            if current is None or term != current:
-                # if this is not the first one then save temp
-                if current is not None:
-                    matrix[current] = temp
-                # reset temp and set current to the new term
-                temp = SortedList(key = lambda x: x.sortable())
-                current = term
-            # update temp
-            temp.update(postings)
-        # save final temp
-        matrix[current] = temp
+        if len(matrices) == 1:
+            matrix = matrices[0]
+        else:        
+            # merge the sorted matrices with heapq and read in order
+            for term,postings in heapq.merge(*matrices, key = lambda x: x[0]):
+                # if it is a new term
+                if current is None or term != current:
+                    # if this is not the first one then save temp
+                    if current is not None:
+                        matrix[current] = temp
+                    # reset temp and set current to the new term
+                    temp = []
+                    current = term
+                # update temp
+                temp.extend(postings)
+            # save final temp
+            matrix[current] = temp
+        
+        # sort document lists
+        for k in matrix.keys():
+            arr = np.array([i.tf() for i in matrix[k]])
+            length = math.sqrt(np.sum(np.power(arr, 2)))
+            matrix[k].sort(key = lambda x: x.tf_norm(length), reverse = True)
 
         return matrix
-    
-    @staticmethod
-    def load(folder: str = "index") -> Matrix:
-        """Load a matrix from save files.
-
-        Args:
-            folder (str, optional): the folder containing the matrix. Defaults to "index".
-
-        Returns:
-            Matrix: a new Matrix object with the loaded data.
-        """
-        data = []
-        count = 0
-        # load metadata
-        try:
-            with open(f"{folder}/meta.json", "r") as f:
-                meta: dict = decode(f.read())
-        except FileNotFoundError:
-            raise MatrixException(f"Index metadata not found at: {folder}")
-        
-        # load index files
-        while True:
-            try:
-                with open(f"{folder}/{meta['filename']}{count}.csv", mode = "r", encoding = "utf-8") as f:
-                    reader = csv.reader(f)
-                    d = {r[0]: [decode(i) for i in r[1:]] for r in reader}
-                    data.append({k: SortedList((Posting(**p) for p in v), key = lambda x: x.sortable()) for k,v in d.items()})
-            except FileNotFoundError:
-                break
-            count += 1
-            
-        # load documents
-        docs = {}
-        with open(f"{folder}/documents.csv", "r") as f:
-            reader = csv.reader(f, delimiter = ",")
-            for row in reader:
-                docs[int(row[0])] = row[1]
-        
-        return Matrix(data, docs, folder, meta["filename"], meta["breakpoints"])

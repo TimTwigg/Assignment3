@@ -83,7 +83,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     print("Time:", time_end-time_start, "seconds")
     print("\nIndexing Complete")
 
-def queryIndex(indexFolderPath: str = "index", printNum: int = 0) -> None:
+def queryIndex(indexFolderPath: str = "index") -> None:
     """Query an index.
 
     Args:
@@ -100,9 +100,7 @@ def queryIndex(indexFolderPath: str = "index", printNum: int = 0) -> None:
         time_start = time.process_time_ns()
         results = q.searchIndex(query)
         time_end = time.process_time_ns()
-        for i,r in enumerate(results, start = 1):
-            if i > printNum:
-                break
+        for r in results:
             print(f"    {r}")
         print(f"  Results: {len(results)}")
         print(f"  Time: {(time_end-time_start) / 10**6} ms")
@@ -123,6 +121,14 @@ def refactorIndex(index: str, breakpoints: list[str], printing: bool):
     except RefactorException:
         filename = "index"
         refactor(index, filename, breakpoints, printing, True)
+
+    # resave the meta
+    with open(f"{index}/meta.json", "r") as f:
+        meta = json.load(f)
+    meta["filename"] = filename
+    meta["breakpoints"] = breakpoints
+    with open(f"{index}/meta.json", "w") as f:
+        json.dump(meta, f, indent = 4)
     
     # reform the meta index
     matrix = Matrix(folder = index, breakpoints = breakpoints, filename = filename)
@@ -140,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--chunksize", help = "Indexing Chunk Size, defaults to 1000. [Indexer Only]", nargs = "?", type = int, default = 1000)
     parser.add_argument("-o", "--offload", help = "Offload chunks as they are loaded, defaults to False. [Indexer Only]", action = argparse.BooleanOptionalAction)
     parser.add_argument("-p", "--printing", help = "Print progress.", action = argparse.BooleanOptionalAction)
-    parser.add_argument("-m", "--maxDocs", help = "Set maximum number of documents to index. For Querier, sets the number of results to print. Defaults to None. [Indexer or Querier]", nargs = "?", type = int, default = -1)
+    parser.add_argument("-m", "--maxDocs", help = "Set maximum number of documents to index. Defaults to None. [Indexer only]", nargs = "?", type = int, default = -1)
     parser.add_argument("-b", "--breakpoints", help = "Set breakpoints for indexer. [Indexer or Refactoring]", nargs = "+", type = str, default = ["a", "i", "r"])
     parser.add_argument("-i", "--indexSource", help = "The index to search. Defaults to testing index. [Querier or Refactoring]", nargs = "?", type = str, default = "indexSmall")
     args = parser.parse_args()
@@ -148,6 +154,6 @@ if __name__ == "__main__":
     if args.index:
         CreateIndex(args.dataset, args.chunksize, args.offload, args.printing, None if args.maxDocs < 0 else args.maxDocs, args.breakpoints)
     elif args.query:
-        queryIndex(args.indexSource, max(args.maxDocs, 0))
+        queryIndex(args.indexSource)
     elif args.refactor:
         refactorIndex(args.indexSource, args.breakpoints, args.printing)

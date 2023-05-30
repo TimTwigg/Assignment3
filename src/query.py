@@ -142,6 +142,9 @@ class Queryier:
         
         results: dict[str: list[dict[str: int]]] = {}
         cosineSimScores: list[float] = []
+        headerScores: list[float] = []
+        titleScores: list[float] = []
+        strongScores: list[float] = []
         docIDs = {}
         queryDF: dict[str: float] = {}
         
@@ -185,16 +188,28 @@ class Queryier:
                 if id not in docIDs:
                     docIDs[id] = len(docIDs)
                     cosineSimScores.append(0)
+                    headerScores.append(0)
+                    titleScores.append(0)
+                    strongScores.append(0)
                 cosineSimScores[docIDs[id]] += wtq * tf
+                if post["header"] == "true":
+                    headerScores[docIDs[id]] += 1
+                if post["title"] == "true":
+                    titleScores[docIDs[id]] += 1
+                if post["bold"] == "true":
+                    strongScores[docIDs[id]] += 1
         
         # calculate final cosine similarity scores by dividing by normalized doc lengths
         for d,i in docIDs.items():
             cosineSimScores[i] /= self.docs[d][1]
         
         # weight the score methods
-        cosineSimScores: np.ndarray = np.multiply(cosineSimScores, self.config.cosine_similarity)
+        cosineSimScores: np.ndarray = np.multiply(cosineSimScores, self.config.cosine_similarity_weight)
+        headerScores: np.ndarray = np.multiply(headerScores, self.config.header_weight)
+        titleScores: np.ndarray = np.multiply(titleScores, self.config.title_weight)
+        strongScores: np.ndarray = np.multiply(strongScores, self.config.bold_weight)
         # sum different score methods
-        scores: np.ndarray = np.sum([cosineSimScores], 0)
+        scores: np.ndarray = np.sum([cosineSimScores, headerScores, titleScores, strongScores], 0)
         
         # divide by normalized document length and retrieve documents in rank order
         ranked = sorted(((d, scores[i]) for d,i in docIDs.items()), key = lambda x: x[1], reverse = True)

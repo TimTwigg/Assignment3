@@ -79,13 +79,13 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - each part of the score is multiplied by a weight
         - the weights should sum to 1 (set float values then normalize to proportion of weight)
     - TODO from Queries
-        - ignore links? (probably at indexing stage)
+        - ignore links? (probably at indexing stage) [`done`]
         - add header importance consideration
-        - check for duplicate/similar pages (indexing stage)
+        - check for duplicate/similar pages (indexing stage) [`done`]
         - ignore .txt and .LOG files?
-        - what about results where 2 pages are the same, but one has a query
-        - same page, different fragment
-        - double check that cosine similarity is correctly implemented (longer pages still seem to be prioritized)
+        - what about results where 2 pages are the same, but one has a query [`done`]
+        - same page, different fragment [`done`]
+        - double check that cosine similarity is correctly implemented (longer pages still seem to be prioritized) [`done`]
 10. gui
     - make it
     - make NotFound page for when no results are found

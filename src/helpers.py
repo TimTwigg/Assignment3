@@ -22,7 +22,7 @@ def tag_visible(element: NavigableString) -> bool:
     Returns:
         bool: True if element is visible to users when the page is rendered, else False
     """
-    if element.parent.name in ["style", "script", "head", "meta", "[document]", "a"]:
+    if element.parent.name in ["style", "script", "head", "meta", "[document]", "a", "img"]:
         return False
     if isinstance(element, Comment):
         return False

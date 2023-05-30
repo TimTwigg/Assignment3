@@ -100,12 +100,12 @@ def queryIndex(indexFolderPath: str = "index", cache_size: int = 25) -> None:
             break
         time_start = time.process_time_ns()
         time_start_w = time.time_ns()
-        results = q.searchIndex(query)
+        results,totalCount = q.searchIndex(query)
         time_end = time.process_time_ns()
         time_end_w = time.time_ns()
         for r in results:
             print(f"    {r}")
-        print(f"  Results: {len(results)}")
+        print(f"  Results: {len(results)} / {totalCount}")
         print(f"  CPU Time: {(time_end-time_start) / 10**6} ms")
         print(f"  Wall Time: {(time_end_w-time_start_w) / 10**6} ms")
 

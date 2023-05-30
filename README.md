@@ -55,7 +55,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - tiered indeces?
         - extra segmented for each token to make it easy to find the best n pages for each token
     - streamline index file loading [`done`]
-    - add document similarity checking to indexing?
+    - add document similarity checking to indexing? [`done`]
     - initally ignore stop words in query [`done`]
         - go back and use them if we don't have enough results without them [`done`]
     - thresholding
@@ -69,9 +69,9 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - add more info to Posting [`done`]
         - use tf-idf score instead of term frequency [`done`]
     - add more scoring info to ranking process (query.Querier.searchIndex)
-        - currently only cosine similarity (relevance)
+        - currently only cosine similarity (relevance) [`done`]
         - add authority score and weight them
-        - add weighting for title/header/bold
+        - add weighting for title/header/bold [`done`]
     - Pagerank idea: maintain extra index of [docID -> rank]?
     - Jaccard coefficient: intersection / union of 2 sets
     - relevance score
@@ -80,7 +80,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - the weights should sum to 1 (set float values then normalize to proportion of weight)
     - TODO from Queries
         - ignore links? (probably at indexing stage) [`done`]
-        - add header importance consideration
+        - add header importance consideration [`done`]
         - check for duplicate/similar pages (indexing stage) [`done`]
         - ignore .txt and .LOG files?
         - what about results where 2 pages are the same, but one has a query [`done`]

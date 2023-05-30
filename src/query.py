@@ -118,7 +118,10 @@ class Queryier:
         reader = csv.reader([line])
         line = next(reader)
         # return the decoded first r items in the line
-        return int(line[1]), [decode(line[i]) for i in range(2, min(self.config.r_docs, len(line)))]
+        if self.config.r_docs > 0:
+            return int(line[1]), [decode(line[i]) for i in range(2, min(self.config.r_docs, len(line)))]
+        else:
+            return int(line[1]), [decode(line[i]) for i in range(2, len(line))]
     
     def getDocs(self) -> dict[int: tuple[str, float]]:
         """Load the documents dict"""
@@ -129,7 +132,7 @@ class Queryier:
                 docs[int(row[0])] = (row[1], float(row[2]))
         return docs
 
-    def searchIndex(self, query: str, useStopWords: bool = False) -> list[str]:
+    def searchIndex(self, query: str, useStopWords: bool = False) -> tuple[list[str], int]:
         """Query an index.
 
         Args:
@@ -137,7 +140,7 @@ class Queryier:
             useStopWords (str, optional): whether to include stopwords in the searched-for terms. Defaults to False.
 
         Returns:
-            list[str]: a list of document names that matched the query.
+            tuple[list[str], int]: a list of document names that matched the query and the number of total results found.
         """
         
         results: dict[str: list[dict[str: int]]] = {}
@@ -221,4 +224,4 @@ class Queryier:
         urls = [self.docs[d][0] for d,_ in ranked[:self.config.k_results]]
 
         # return top k results
-        return urls
+        return urls, len(ranked)

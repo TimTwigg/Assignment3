@@ -29,7 +29,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         print("Offload:", "Yes" if offload else "No")
         print("Limit Document Count:", f"Yes ({maxDocs})" if maxDocs is not None else "No")
         print("Breakpoints:", breakpoints)
-        print("Creating Index: ", end = "")
+        print("Creating Indexer: ", end = "")
     indexer = Indexer(dataset)
     if printing:
         print("Done")
@@ -74,7 +74,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     # save summary stats
     sizes = [os.stat(f"index/matrix{i}.csv").st_size for i in range(matrix._matrix_count_)]
     total = sum(sizes)
-    with open("summary.txt", "w") as f:
+    with open("index/summary.txt", "w") as f:
         f.write(f"Number of pages: {count}\nNumber of unique tokens: {matrix.scan_size()}\n" +
             "\n".join(f"  Matrix {i} Filesize: {size / 1024:.4f} kb | {size / 1024**2:.4f} mb | {size / 1024**3:.4f} gb" for i,size in enumerate(sizes)) +
             f"\nTotal Index File Size: {total / 1024:.4f} kb | {total / 1024**2:.4f} mb | {total / 1024**3:.4f} gb" +
@@ -83,27 +83,31 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     print("Time:", time_end-time_start, "seconds")
     print("\nIndexing Complete")
 
-def queryIndex(indexFolderPath: str = "index") -> None:
+def queryIndex(indexFolderPath: str = "index", cache_size: int = 25) -> None:
     """Query an index.
 
     Args:
         indexFolderPath (str, optional): the folder containing the index to query. Defaults to "index".
-        printNum (int, optional): the number of results to print. Defaults to 0.
+        cache_size (int, optional): the querier cache size. Defaults to 25.
     """
     print("Search Index:", indexFolderPath)
+    print("Cache Size:", cache_size)
     print("Enter query to search. To exit, press enter on a blank query.")
-    q = Queryier(indexFolderPath)
+    q = Queryier(indexFolderPath, cache_size)
     while True:
         query = input("\nq:> ")
         if len(query.strip()) < 1:
             break
         time_start = time.process_time_ns()
+        time_start_w = time.time_ns()
         results = q.searchIndex(query)
         time_end = time.process_time_ns()
+        time_end_w = time.time_ns()
         for r in results:
             print(f"    {r}")
         print(f"  Results: {len(results)}")
-        print(f"  Time: {(time_end-time_start) / 10**6} ms")
+        print(f"  CPU Time: {(time_end-time_start) / 10**6} ms")
+        print(f"  Wall Time: {(time_end_w-time_start_w) / 10**6} ms")
 
 def refactorIndex(index: str, breakpoints: list[str], printing: bool):
     if len(breakpoints) == 1:
@@ -149,11 +153,12 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--maxDocs", help = "Set maximum number of documents to index. Defaults to None. [Indexer only]", nargs = "?", type = int, default = -1)
     parser.add_argument("-b", "--breakpoints", help = "Set breakpoints for indexer. [Indexer or Refactoring]", nargs = "+", type = str, default = ["a", "i", "r"])
     parser.add_argument("-i", "--indexSource", help = "The index to search. Defaults to testing index. [Querier or Refactoring]", nargs = "?", type = str, default = "indexSmall")
+    parser.add_argument("-cs", "--cacheSize", help = "Querier cache size, defaults to 25. [Querier only]", nargs = "?", type = int, default = 25)
     args = parser.parse_args()
     
     if args.index:
         CreateIndex(args.dataset, args.chunksize, args.offload, args.printing, None if args.maxDocs < 0 else args.maxDocs, args.breakpoints)
     elif args.query:
-        queryIndex(args.indexSource)
+        queryIndex(args.indexSource, args.cacheSize)
     elif args.refactor:
         refactorIndex(args.indexSource, args.breakpoints, args.printing)

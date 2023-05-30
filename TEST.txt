@@ -1,0 +1,29 @@
+# Queries
+
+acm [performs well on time but poorly on relevance]
+master of software engineering [performs ok on time but poorly on relevance]
+cristina lopes [performs well on time but poorly on relevance]
+computer science [performs ok on time but poorly on relevance]
+ics [performs well on time and ok on relevance]
+informatics [performs well on time and ok on relevance]
+student health insurance [performs ok on time but poorly on relevance]
+disability accomadations [performs well on time but average on relevance]
+student housing costs [performs well on time but poorly on relevance]
+mental health [performs well on time but poorly on relevance]
+economics major [performs well on time but poorly on relevance]
+change of major [performs ok on time and ok on relevance]
+how to apply for graduation in summer [performs poorly on time and poorly on relevance]
+international student center [performs well on time but poorly on relevance]
+where to get hot food on campus [performs ok on time but poorly on relevance]
+quiet study areas on campus [performs well on time but poorly on relevance]
+consequences of academic dishonesty [performs well on time but poorly on relevance]
+wearable technology [performs well on time and ok on relevance]
+graph algorithms [performs well on time and relevance]
+student affairs office [performs well on time but poorly on relevance]
+ics faculty [performs well on time but poorly on relevance]
+
+# Changes to Improve Performance
+Ignore hyperlink text when indexing.
+    - reduces importance of pages who had most of their tokens in links (such as professor publications list pages)
+Implement similarity detection during indexing
+    - reduce search pool size

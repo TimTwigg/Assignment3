@@ -1,27 +1,26 @@
 from typing import Callable
-import time
-import json
-from main import CreateIndex
+import timeit
+import random
+random.seed(1234)
 
-def timeit(func: Callable[[None], None]) -> float:
-    start = time.process_time_ns()
-    func()
-    end = time.process_time_ns()
-    return end - start
-
-def timeList(func: Callable[[None], None], tests: int = 1) -> list[float]:
-    return [timeit(func) for _ in range(tests)]
+def timeList(func: Callable[[None], None], tests: int = 10) -> list[float]:
+    return timeit.repeat(func, number = 1000, repeat = tests)
 
 def compare() -> None:
-    # test breakpoints
-    f = lambda brk: CreateIndex(chunkSize = 500, offload = False, printing = True, maxDocs = 2500, breakpoints = brk)
-    times = []
-    for brk in [["a", "i", "r"], ["a", "g", "m", "t"], ["5", "a", "f", "k", "p", "u"]]:
-        times.append(timeList(lambda: f(brk)))
-        print()
+    length = 1000
+    l = [random.randint(0, 1) for _ in range(length)]
     
-    for tl in times:
-        print(tl)
+    def f1():
+        res = int("".join(str(i) for i in l), 2)
     
-    with open("results.json", "w") as f:
-        json.dump(times, f, indent = 4)
+    def f2():
+        res = 0
+        for ele in l:
+            res = (res << 1) | ele
+    
+    def f3():
+        res = sum(x * 2**i for i, x in enumerate(reversed(l)))
+    
+    print(timeList(f1))
+    print(timeList(f2))
+    print(timeList(f3))

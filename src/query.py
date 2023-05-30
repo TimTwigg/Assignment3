@@ -3,6 +3,7 @@ from nltk.stem import SnowballStemmer
 from typing import TextIO
 import csv
 import math
+import numpy as np
 from src.helpers import tokenize
 from src.config import Config
 
@@ -74,7 +75,10 @@ class Queryier:
             term (str): the term to add.
             results (list[str]): the documents returned as results for that term.
         """
-        if len(self._cache_) > self.CACHE_SIZE:
+        if self.CACHE_SIZE == 0:
+            return None
+        
+        if len(self._cache_) >= self.CACHE_SIZE:
             self._cache_[self.pointer] = {term: results}
             self.pointer = (self.pointer + 1) % self.CACHE_SIZE
         else:
@@ -137,7 +141,7 @@ class Queryier:
         """
         
         results: dict[str: list[dict[str: int]]] = {}
-        scores: list[float] = []
+        cosineSimScores: list[float] = []
         docIDs = {}
         queryDF: dict[str: float] = {}
         
@@ -165,6 +169,7 @@ class Queryier:
                 # if the term is not found in the index
                 # currently ignores this failure
                 continue
+                # if this happens then the queryDF line below throws a KeyError
         
         # calculate all query term weights
         queryDF = {term: (1 + math.log10(terms.count(term))) * math.log10(self.documentCount / queryDF[term]) for term in terms}
@@ -176,17 +181,20 @@ class Queryier:
             # add score for this term in each doc to the running sum
             for post in results[term]:
                 id = post["id"]
-                tf = post["frequency"]
+                tf = 1 + math.log10(post["frequency"])
                 if id not in docIDs:
                     docIDs[id] = len(docIDs)
-                    scores.append(0)
-                scores[docIDs[id]] += wtq * tf
+                    cosineSimScores.append(0)
+                cosineSimScores[docIDs[id]] += wtq * tf
         
-        # calculate final cosine similarity scores
+        # calculate final cosine similarity scores by dividing by normalized doc lengths
         for d,i in docIDs.items():
-            scores[i] /= self.docs[d][1]
+            cosineSimScores[i] /= self.docs[d][1]
         
-        # TODO: Add more scoring methods
+        # weight the score methods
+        cosineSimScores: np.ndarray = np.multiply(cosineSimScores, self.config.cosine_similarity)
+        # sum different score methods
+        scores: np.ndarray = np.sum([cosineSimScores], 0)
         
         # divide by normalized document length and retrieve documents in rank order
         ranked = sorted(((d, scores[i]) for d,i in docIDs.items()), key = lambda x: x[1], reverse = True)

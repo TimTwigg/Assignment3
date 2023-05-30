@@ -124,6 +124,8 @@ class Matrix:
         path.unlink(missing_ok = True)
         path = Path(f"{self._root_}/documents.csv")
         path.unlink(missing_ok = True)
+        path = Path(f"{self._root_}/summary.txt")
+        path.unlink(missing_ok = True)
     
     def __str__(self) -> str:
         return "Matrix:\n" + "\n  +\n".join("\n  ".join([f"{k}: {v}" for k,v in m.items()]) for _,m in self._submatrices_.items())
@@ -349,15 +351,17 @@ class Matrix:
         """
         
         matrix: dict[str: list[Posting]] = {}
-        matrices = [sorted(m.items()) for m in matrices]
+        matrixItems = [sorted(m.items()) for m in matrices]
         temp: list[Posting] = []
         current: str = None
         
         if len(matrices) == 1:
-            matrix = matrices[0]
+            matrix = {}
+            for k,v in matrices[0].items():
+                matrix[k] = list(v)
         else:        
             # merge the sorted matrices with heapq and read in order
-            for term,postings in heapq.merge(*matrices, key = lambda x: x[0]):
+            for term,postings in heapq.merge(*matrixItems, key = lambda x: x[0]):
                 # if it is a new term
                 if current is None or term != current:
                     # if this is not the first one then save temp

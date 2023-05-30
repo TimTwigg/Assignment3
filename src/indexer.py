@@ -4,9 +4,9 @@ from bs4.builder import XMLParsedAsHTMLWarning
 import warnings
 import json
 import re
-from typing import Tuple
 from nltk.stem import SnowballStemmer
-from src.helpers import tokenize, tag_visible, computeWordFrequencies
+from src.helpers import tokenize, tag_visible, computeWordFrequencies, simhash, simHashSimilarity
+from src.config import Config
 
 warnings.filterwarnings("ignore", category = XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category = MarkupResemblesLocatorWarning)
@@ -37,8 +37,10 @@ class Indexer:
 
         self._getNextUrl = (url for url in Path(self._dataset).glob("**/*.json"))
         self.stemmer = SnowballStemmer("english")
+        self.config = Config()
+        self.simHashes: set[int] = set()
     
-    def _parse_html_(self, html: str) -> Tuple[list, set, set, set]:
+    def _parse_html_(self, html: str) -> tuple[list, set, set, set]:
         soup = BeautifulSoup(html, "lxml")
         
         # extract all visible text segments
@@ -54,7 +56,18 @@ class Indexer:
         
         return tokens, headers, bold, titles
     
-    def _tokenize_(self, url: Path) -> Tuple[dict[str: int], str, set[str], set[str], set[str]]:
+    def _sim_in_set_(self, sim: int) -> bool:
+        if sim in self.simHashes:
+            return True
+        for s in self.simHashes:
+            if simHashSimilarity(sim, s) > self.config.sim_thresh:
+                if simHashSimilarity(sim, s) > 1:
+                    raise Exception()
+                return True
+        self.simHashes.add(sim)
+        return False
+    
+    def _tokenize_(self, url: Path) -> tuple[dict[str: int], str, set[str], set[str], set[str]]|None:
         # load file
         with url.open("r") as f:
             data = json.loads(f.read())
@@ -62,11 +75,17 @@ class Indexer:
         html: str = data["content"]
         # parse html
         tokens = self._parse_html_(html)
-        return computeWordFrequencies(tokens[0]), data["url"], *tokens[1:]
+        freqs = computeWordFrequencies(tokens[0])
+        if self._sim_in_set_(simhash(tokens[0], freqs)):
+            return None
+        return freqs, data["url"], *tokens[1:]
     
     def getNextSite(self) -> Site:
         try:
             file = next(self._getNextUrl)
         except StopIteration:
             return None
-        return Site(file, *self._tokenize_(file))
+        parts = self._tokenize_(file)
+        if parts is None:
+            return self.getNextSite()
+        return Site(file, *parts)

@@ -78,7 +78,7 @@ class Indexer:
         freqs = computeWordFrequencies(tokens[0])
         if self._sim_in_set_(simhash(tokens[0], freqs)):
             return None
-        return freqs, data["url"], *tokens[1:]
+        return freqs, data["url"].split("#")[0], *tokens[1:]
     
     def getNextSite(self) -> Site:
         try:

@@ -170,9 +170,8 @@ class Queryier:
                 self._add_cache_(term, res)
             except KeyError:
                 # if the term is not found in the index
-                # currently ignores this failure
-                continue
-                # if this happens then the queryDF line below throws a KeyError
+                queryDF[term] = self.documentCount - 1
+                results[term] = []
         
         # calculate all query term weights
         queryDF = {term: (1 + math.log10(terms.count(term))) * math.log10(self.documentCount / queryDF[term]) for term in terms}

@@ -16,7 +16,7 @@ class Config:
         self.r_docs: int = int(parser["GENERAL"]["RDOCS"])
         
         # normalize weights
-        total = sum(header_weight, bold_weight, title_weight, cosine_similarity_weight)
+        total = header_weight + bold_weight + title_weight + cosine_similarity_weight
         self.header_weight = header_weight / total
         self.bold_weight = bold_weight / total
         self.title_weight = title_weight / total

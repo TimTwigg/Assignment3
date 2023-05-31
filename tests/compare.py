@@ -1,26 +1,22 @@
 from typing import Callable
 import timeit
 import random
-random.seed(1234)
+import numpy as np
 
 def timeList(func: Callable[[None], None], tests: int = 10) -> list[float]:
-    return timeit.repeat(func, number = 1000, repeat = tests)
+    return timeit.repeat(func, number = 1, repeat = tests)
 
 def compare() -> None:
-    length = 1000
-    l = [random.randint(0, 1) for _ in range(length)]
-    
+        
     def f1():
-        res = int("".join(str(i) for i in l), 2)
+        pass
     
     def f2():
-        res = 0
-        for ele in l:
-            res = (res << 1) | ele
+        pass
     
-    def f3():
-        res = sum(x * 2**i for i, x in enumerate(reversed(l)))
+    t1 = timeList(f1)
+    t2 = timeList(f2)
     
-    print(timeList(f1))
-    print(timeList(f2))
-    print(timeList(f3))
+    res = np.sum(np.subtract(t1, t2))
+    print("Result:", "f1" if res < 0 else "f2", "by", abs(res), "seconds.")
+    

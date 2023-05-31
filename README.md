@@ -43,7 +43,8 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - could just add boolean fields to Posting marking whether the word appeared in important fields [`done`]
             - one for each type so that they can be weighted differently? [`done`]
 7. query caching [`done']
-8. optimization
+    - save cache to file? or new cache every search session?
+8. optimization [`done`]
     - rework index files as csv files with [term, postings] rows [`done`]
         - would allow partial loading of file instead of whole thing, plus no json decoding [`done`]
         - term would be str, postings could be stringified json dict to be decoded if necessary [`done`]
@@ -52,37 +53,30 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - would need another index rework [`done`]
         - achieved with file.seek [`done`]
     - conjunctive processing [`done`]
-    - tiered indeces?
-        - extra segmented for each token to make it easy to find the best n pages for each token
+    - tiered indeces? [`ignore`]
+        - extra segmented for each token to make it easy to find the best n pages for each token [`done`]
+        - don't need this - results already fast enough [`done`]
     - streamline index file loading [`done`]
     - add document similarity checking to indexing? [`done`]
     - initally ignore stop words in query [`done`]
         - go back and use them if we don't have enough results without them [`done`]
-    - thresholding
-        - lecture 19
+    - thresholding [`done`]
     - sort posting lists by importance for that term and then read only the first x postings? [`done`]
-        - could speed up processing
-        - unsafe
-    - multithreading
-        - give each term to a different thread?
+    - multithreading [`ignore`]
 9. ranked retrieval
     - add more info to Posting [`done`]
         - use tf-idf score instead of term frequency [`done`]
     - add more scoring info to ranking process (query.Querier.searchIndex)
         - currently only cosine similarity (relevance) [`done`]
-        - add authority score and weight them
+        - add PageRank score
+            - store in documents.csv
+        - add HITS score
         - add weighting for title/header/bold [`done`]
-    - Pagerank idea: maintain extra index of [docID -> rank]?
-    - Jaccard coefficient: intersection / union of 2 sets
-    - relevance score
-        - R(Q, D) -> score
-        - each part of the score is multiplied by a weight
-        - the weights should sum to 1 (set float values then normalize to proportion of weight)
     - TODO from Queries
         - ignore links? (probably at indexing stage) [`done`]
         - add header importance consideration [`done`]
         - check for duplicate/similar pages (indexing stage) [`done`]
-        - ignore .txt and .LOG files?
+        - ignore .txt, .LOG, .xml files?
         - what about results where 2 pages are the same, but one has a query [`done`]
         - same page, different fragment [`done`]
         - double check that cosine similarity is correctly implemented (longer pages still seem to be prioritized) [`done`]

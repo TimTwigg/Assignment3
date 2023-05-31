@@ -4,7 +4,7 @@ import time
 import json
 from src.indexer import Indexer, Site
 from src.matrix import  Matrix, Posting
-from src.query import Queryier
+from src.query import Queryier, CacheStrategy
 from src.refactor import refactor, RefactorException
 
 def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = True, printing: bool = True, maxDocs: int = None, breakpoints: list[str] = ["a", "i", "r"]):
@@ -83,31 +83,37 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     print("Time:", time_end-time_start, "seconds")
     print("\nIndexing Complete")
 
-def queryIndex(indexFolderPath: str = "index", cache_size: int = 25) -> None:
+def queryIndex(indexFolderPath: str = "index", cache_size: int = 25, cacheStrategy: str = "T") -> None:
     """Query an index.
 
     Args:
         indexFolderPath (str, optional): the folder containing the index to query. Defaults to "index".
         cache_size (int, optional): the querier cache size. Defaults to 25.
+        cacheStrategy (str, optional): the cache update strategy. Can be T or P. Defaults to T.
     """
+    if cacheStrategy == "T":
+        update = CacheStrategy.TIMELY
+    elif cacheStrategy == "P":
+        update = CacheStrategy.POPULARITY
+    else:
+        raise Exception("Invalid argument for cacheStrategy.")
+    
     print("Search Index:", indexFolderPath)
     print("Cache Size:", cache_size)
+    print("Cache Update Policy:", cacheStrategy)
     print("Enter query to search. To exit, press enter on a blank query.")
-    q = Queryier(indexFolderPath, cache_size)
+    q = Queryier(indexFolderPath, cache_size, update)
     while True:
         query = input("\nq:> ")
         if len(query.strip()) < 1:
             break
-        time_start = time.process_time_ns()
-        time_start_w = time.time_ns()
+        time_start = time.time_ns()
         results,totalCount = q.searchIndex(query)
-        time_end = time.process_time_ns()
-        time_end_w = time.time_ns()
+        time_end = time.time_ns()
         for r in results:
             print(f"    {r}")
         print(f"  Results: {len(results)} / {totalCount}")
-        print(f"  CPU Time: {(time_end-time_start) / 10**6} ms")
-        print(f"  Wall Time: {(time_end_w-time_start_w) / 10**6} ms")
+        print(f"  Time: {(time_end-time_start) / 10**6} ms")
 
 def refactorIndex(index: str, breakpoints: list[str], printing: bool):
     if len(breakpoints) == 1:
@@ -154,11 +160,12 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--breakpoints", help = "Set breakpoints for indexer. [Indexer or Refactoring]", nargs = "+", type = str, default = ["a", "i", "r"])
     parser.add_argument("-i", "--indexSource", help = "The index to search. Defaults to testing index. [Querier or Refactoring]", nargs = "?", type = str, default = "indexSmall")
     parser.add_argument("-cs", "--cacheSize", help = "Querier cache size, defaults to 25. [Querier only]", nargs = "?", type = int, default = 25)
+    parser.add_argument("-u", "--update", help = "Querier cache update strategy, can be TIMELY or POPULARITY, enter T or P. Defaults to T.", nargs = "?", choices = ["T", "P"], default = "T")
     args = parser.parse_args()
     
     if args.index:
         CreateIndex(args.dataset, args.chunksize, args.offload, args.printing, None if args.maxDocs < 0 else args.maxDocs, args.breakpoints)
     elif args.query:
-        queryIndex(args.indexSource, args.cacheSize)
+        queryIndex(args.indexSource, args.cacheSize, args.update)
     elif args.refactor:
         refactorIndex(args.indexSource, args.breakpoints, args.printing)

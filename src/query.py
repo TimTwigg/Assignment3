@@ -4,21 +4,29 @@ from typing import TextIO
 import csv
 import math
 import numpy as np
+from enum import Enum
 from src.helpers import tokenize
 from src.config import Config
 
 class QueryException(Exception):
     pass
 
+class CacheStrategy(Enum):
+    # replace oldest cache value
+    TIMELY = 0
+    # replace least popular cache value
+    POPULARITY = 1
+
 IndexData = list[dict[str: int]]
 
 class Queryier:    
-    def __init__(self, indexLoc: str, cache_size: int = 25):
+    def __init__(self, indexLoc: str, cache_size: int = 25, cacheStrategy: CacheStrategy = CacheStrategy.TIMELY):
         """Create Queryier object to query an index.
 
         Args:
             indexLoc (str): the folder containing the index.
             cache_size (int, optional): how many query terms to store in the cache. Defaults to 25.
+            cacheStrategy (CacheStrategy, optional): cache update policy. Defaults to TIMELY (overwrite oldest value).
 
         Raises:
             QueryException: if the index is not found or if the index metadata file is missing/malformed.
@@ -45,6 +53,8 @@ class Queryier:
         self.indexLoc = indexLoc
         self.pointer = 0
         self.CACHE_SIZE = cache_size
+        self.cacheStrat = cacheStrategy
+        self.cacheUse: dict[int: int] = {}
         self._cache_: list[dict[str:list[str]]] = []
         self.stemmer = SnowballStemmer("english")
         self.docs = self.getDocs()
@@ -79,10 +89,16 @@ class Queryier:
             return None
         
         if len(self._cache_) >= self.CACHE_SIZE:
-            self._cache_[self.pointer] = {term: results}
-            self.pointer = (self.pointer + 1) % self.CACHE_SIZE
+            if self.cacheStrat == CacheStrategy.TIMELY:
+                self._cache_[self.pointer] = {term: results}
+                self.pointer = (self.pointer + 1) % self.CACHE_SIZE
+            elif self.cacheStrat == CacheStrategy.POPULARITY:
+                index = min(self.cacheUse.items(), key = lambda x: x[1])[0]
+                self._cache_[index] = {term: results}
+                self.cacheUse[index] = 1
         else:
             self._cache_.append({term: results, "df": len(results)})
+            self.cacheUse[len(self.cacheUse)] = 1
     
     def _check_cache_(self, term: str) -> None|tuple[int, list[str]]:
         """Check if a term is in the cache.
@@ -93,8 +109,10 @@ class Queryier:
         Returns:
             None|list[str]: the list of results stored in the cache. Returns None if the term was not in the cache.
         """
-        for r in self._cache_:
+        for i,r in enumerate(self._cache_):
             if term in r:
+                if self.cacheStrat == CacheStrategy.POPULARITY:
+                    self.cacheUse[i] += 1
                 return r["df"], r[term]
         return None
     

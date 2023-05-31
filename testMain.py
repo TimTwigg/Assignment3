@@ -1,7 +1,8 @@
 from tests.compare import compare
 
 def main():
-    compare()
+    for _ in range(10):
+        compare()
 
 if __name__ == "__main__":
     main()

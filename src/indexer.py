@@ -61,8 +61,6 @@ class Indexer:
             return True
         for s in self.simHashes:
             if simHashSimilarity(sim, s) > self.config.sim_thresh:
-                if simHashSimilarity(sim, s) > 1:
-                    raise Exception()
                 return True
         self.simHashes.add(sim)
         return False

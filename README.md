@@ -58,6 +58,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - don't need this - results already fast enough [`done`]
     - streamline index file loading [`done`]
     - add document similarity checking to indexing? [`done`]
+        - change it to a post-processing step to speed up the indexing
     - initally ignore stop words in query [`done`]
         - go back and use them if we don't have enough results without them [`done`]
     - thresholding [`done`]

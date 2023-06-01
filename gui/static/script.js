@@ -15,20 +15,21 @@ async function search() {
         results = data["results"];
         $("#results").empty();
         $.each(results, (_, url) => {
-            let p = $("<p/>");
+            let p = $("<p/>").addClass("resultP");
             let a = $("<a>", {
                 text: url,
                 href: url
             });
             p.append(a);
             $("#results").append(p);
-            let info = $("<p/>");
-            info.append($("<span/>").text(`Query Time: ${data["time"]} ms`));
-            info.append($("<br/>"));
-            info.append($("<span/>").text(`Total Results: ${data["count"]}`));
-            $("#info").empty();
-            $("#info").append(info);
         });
+        let info = $("<p/>");
+        info.append($("<span/>").text(`Query Time: ${data["time"]} ms`));
+        info.append($("<br/>"));
+        info.append($("<span/>").text(`Total Results: ${data["count"]}`));
+        $("#info").empty();
+        $("#info").append(info);
+        $("h1").addClass("searched");
     });
 }
 

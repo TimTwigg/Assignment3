@@ -88,8 +88,17 @@
     .offset-by-one-half.columns     { margin-left: 52%; }
 }
 
+html,
+body {
+    height: 100%;
+}
+
 body {
     font-size: 16px;
+    background-image: url("background.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
 }
 
 #searchBar,
@@ -113,7 +122,25 @@ div.spacer {
 }
 
 #info {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
+    margin-left: 85%;
+    width: 15%;
+    color: wheat;
+}
+
+.resultP {
+    background-color: white;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+h1 {
+    text-align: center;
+    font-size: 64px;
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+}
+
+h1.searched {
+    display: none;
 }

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang = "en">
+    <head>
+        <meta charset = "utf-8">
+        <meta name = "viewport" content = "width = device-width, initial-scale = 1">
+        <meta name = "author" content = "Timothy Twigg">
+        <meta name = "description" content = "Search Engine Interface">
+        <link rel = "stylesheet" href = "{{url_for('static', filename = 'styles.css')}}">
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+        <script src = "{{url_for('static', filename = 'script.js')}}"></script>
+        <script src = "https://use.fontawesome.com/ff30197ced.js"></script>
+        <title>INFoSearch</title>
+    </head>
+    <body>
+        <div class = "spacer"></div>
+        <div class = "container">
+            <input id = "searchBar" class = "nine columns offset-by-one column" type = "text" placeholder = "Search">
+            <button id = "searchButton" class = "one column" onclick = "search()"><i class = "fa fa-search"></i></button>
+            <section id = "results" class = "twelve columns"></section>
+        </div>
+        <footer>
+            <div id = "info"></div>
+        </footer>
+    </body>
+</html>

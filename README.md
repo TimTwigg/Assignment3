@@ -81,5 +81,8 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - same page, different fragment [`done`]
         - double check that cosine similarity is correctly implemented (longer pages still seem to be prioritized) [`done`]
 10. gui
-    - make it
-    - make NotFound page for when no results are found
+    - make it [`done`]
+    - make NotFound page for when no results are found?
+    - design
+    - openAI summaries?
+    - titles?

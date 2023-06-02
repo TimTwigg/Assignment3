@@ -1,6 +1,7 @@
 from bs4.element import Comment, NavigableString
 import re
 import hashlib
+from collections.abc import Iterable
 
 def tokenize(input_str: str) -> list[str]:
     """File Tokenizer
@@ -83,3 +84,19 @@ def simHashSimilarity(s1: int, s2: int) -> float:
         float: the similarity score
     """
     return sum(1 if (s1 >> i) & 1 == (s2 >> i) & 1 else 0 for i in range(64)) / 64
+
+def multiSetIntersection(sets: list[set]) -> set:
+    """Compute the intersection of multiple sets.
+
+    Args:
+        sets (list[set]): the list of sets
+
+    Returns:
+        set: the intersection result set
+    """
+    assert sum(1 if type(i) is int else 0 for i in sets[0]) == len(sets[0])
+    sets.sort(key = lambda x: len(x))
+    out = sets[0]
+    for i in range(1, len(sets)):
+        out.intersection_update(sets[i])
+    return out

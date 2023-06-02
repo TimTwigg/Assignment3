@@ -10,7 +10,7 @@ function setup() {
 
 // add click event for search button and insert results
 async function search() {
-    const response = await fetch(`http://127.0.0.1:5000/search?query=${encodeURIComponent($("#searchBar").val())}`);
+    const response = await fetch(`http://127.0.0.1:5000/search/?query=${encodeURIComponent($("#searchBar").val())}`);
     response.json().then(data => {
         results = data["results"];
         $("#results").empty();

@@ -6,7 +6,7 @@ import math
 import numpy as np
 from enum import Enum
 from dataclasses import dataclass
-from src.helpers import tokenize
+from src.helpers import tokenize, multiSetIntersection
 from src.config import Config
 
 class QueryException(Exception):
@@ -65,7 +65,7 @@ class Queryier:
         self._cache_: list[dict[str:list[str]]] = []
         self.stemmer = SnowballStemmer("english")
         self.docs = self.getDocs()
-        self._files_: list[TextIO] = [open(f"{indexLoc}/{self.filename}{i}.csv", "r") for i in range(len(self.breakpoints)+1)]
+        self._files_: list[TextIO] = [open(f"{indexLoc}/{self.filename}{i}.csv", "r", encoding = "utf-8") for i in range(len(self.breakpoints)+1)]
         self.config = Config()
         
         # load stopwords
@@ -173,6 +173,7 @@ class Queryier:
         headerScores: list[float] = []
         titleScores: list[float] = []
         strongScores: list[float] = []
+        conjunctiveScores: list[float] = []
         docIDs = {}
         queryDF: dict[str: float] = {}
         
@@ -218,13 +219,19 @@ class Queryier:
                     headerScores.append(0)
                     titleScores.append(0)
                     strongScores.append(0)
+                    conjunctiveScores.append(0)
                 cosineSimScores[docIDs[id]] += wtq * tf
-                if post["header"] == "true":
+                if post["header"]:
                     headerScores[docIDs[id]] += 1
-                if post["title"] == "true":
+                if post["title"]:
                     titleScores[docIDs[id]] += 1
-                if post["bold"] == "true":
+                if post["bold"]:
                     strongScores[docIDs[id]] += 1
+        
+        # compute conjunctive processing score
+        conjunctiveRes: set[int] = multiSetIntersection([set(p["id"] for p in v) for v in results.values()])
+        for id in conjunctiveRes:
+            conjunctiveScores[docIDs[id]] = 1
         
         # calculate final cosine similarity scores by dividing by normalized doc lengths
         for d,i in docIDs.items():
@@ -235,14 +242,14 @@ class Queryier:
         headerScores: np.ndarray = np.multiply(headerScores, self.config.header_weight)
         titleScores: np.ndarray = np.multiply(titleScores, self.config.title_weight)
         strongScores: np.ndarray = np.multiply(strongScores, self.config.bold_weight)
+        conjunctiveScores: np.ndarray = np.multiply(conjunctiveScores, self.config.conjunctive_weight)
         # combine relevance scores
-        relevance_scores: np.ndarray = np.multiply(np.prod([cosineSimScores, headerScores, titleScores, strongScores], 0), self.config.alpha)
+        relevance_scores: np.ndarray = np.multiply(np.sum([cosineSimScores, headerScores, titleScores, strongScores, conjunctiveScores], 0), self.config.alpha)
         
         # authority scores
         authority_scores: np.ndarray = np.array([1]*len(relevance_scores))
         
         # sum different score methods
-        # scores: np.ndarray = np.sum([cosineSimScores, headerScores, titleScores, strongScores], 0)
         scores: np.ndarray = np.sum([relevance_scores, authority_scores], 0)
         
         # divide by normalized document length and retrieve documents in rank order

@@ -10,6 +10,7 @@ class Config:
         bold_weight: float = float(parser["WEIGHTS"]["BOLD"])
         title_weight: float = float(parser["WEIGHTS"]["TITLE"])
         cosine_similarity_weight: float = float(parser["WEIGHTS"]["COSINE_SIMILARITY"])
+        conjunctive_weight: float = float(parser["WEIGHTS"]["CONJUNCTIVE"])
         self.alpha: float = float(parser["WEIGHTS"]["ALPHA"])
         
         # general options
@@ -21,8 +22,9 @@ class Config:
         """Number of posts to traverse per term. Value < 0 indicates no limit."""
         
         # normalize weights
-        total = header_weight + bold_weight + title_weight + cosine_similarity_weight
+        total = header_weight + bold_weight + title_weight + cosine_similarity_weight + conjunctive_weight
         self.header_weight = header_weight / total
         self.bold_weight = bold_weight / total
         self.title_weight = title_weight / total
         self.cosine_similarity_weight = cosine_similarity_weight / total
+        self.conjunctive_weight = conjunctive_weight / total

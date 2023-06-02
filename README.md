@@ -31,7 +31,6 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
     - set to create files in folder with extra metadata file for breakpoints and filecount? [`done`]
 4. write module to search/query Matrix[`done`]
     - write in python [`done`]
-    - convert to cython for faster querying?
 
 ### Milestone 3
 
@@ -43,7 +42,6 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - could just add boolean fields to Posting marking whether the word appeared in important fields [`done`]
             - one for each type so that they can be weighted differently? [`done`]
 7. query caching [`done']
-    - save cache to file? or new cache every search session?
 8. optimization [`done`]
     - rework index files as csv files with [term, postings] rows [`done`]
         - would allow partial loading of file instead of whole thing, plus no json decoding [`done`]
@@ -72,6 +70,7 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
             - store in documents.csv
         - add HITS score
         - add weighting for title/header/bold [`done`]
+        - add conjunctive processing score [`done`]
     - TODO from Queries
         - ignore links? (probably at indexing stage) [`done`]
         - add header importance consideration [`done`]

@@ -51,7 +51,7 @@ class Indexer:
     
     def _validate_filetype_(self, url: str) -> bool:
         """Returns False if the url has an invalid filetype, else True."""
-        return not re.match(r".*\.(txt|log|xml)", url.lower())
+        return not re.match(r".*\.(txt|log|xml|git)", url.lower())
     
     def _parse_html_(self, html: str) -> tuple[list, set, set, set, str]:
         soup = BeautifulSoup(html, "lxml")

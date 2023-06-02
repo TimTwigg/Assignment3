@@ -1,5 +1,6 @@
 from bs4.element import Comment, NavigableString
 import re
+import hashlib
 
 def tokenize(input_str: str) -> list[str]:
     """File Tokenizer
@@ -42,10 +43,6 @@ def computeWordFrequencies(tokens: list[str]) -> dict[str:int]:
         freq[tok] = freq.get(tok, 0) + 1
     return freq
 
-def getBit(num: int, i: int) -> int:
-    """Return the i'th bit of num"""
-    return (num >> i) & 1
-
 def getMult(num: int, i: int) -> int:
     """Return 1 if the i'th bit is 1, else -1"""
     return 1 if (num >> i) & 1 else -1
@@ -61,7 +58,7 @@ def simhash(tokens: list[str], frequencies: dict[str: int]) -> int:
         int: the integer SimHash
     """
     uTokens = list(set(tokens))
-    hashes: list[tuple[str, int]] = [(t, hash(t)) for t in uTokens]
+    hashes: list[tuple[str, int]] = [(t, int.from_bytes(hashlib.sha1(t.encode("utf-8")).digest()[:8], "little")) for t in uTokens]
     v = [1 if sum(getMult(h, i)*frequencies[t] for t,h in hashes) > 0 else 0 for i in range(64)]
     res = 0
     for ele in v:
@@ -78,4 +75,4 @@ def simHashSimilarity(s1: int, s2: int) -> float:
     Returns:
         float: the similarity score
     """
-    return sum(1 if getBit(s1, i) == getBit(s2, i) else 0 for i in range(64)) / 64
+    return sum(1 if (s1 >> i) & 1 == (s2 >> i) & 1 else 0 for i in range(64)) / 64

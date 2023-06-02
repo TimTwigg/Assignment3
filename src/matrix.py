@@ -94,6 +94,7 @@ class Matrix:
         self._submatrices_: dict[int: MatrixData] = {i: {} for i in range(self._matrix_count_)}
         self._documents_: dict[int: str] = documents
         self._document_lengths_: dict[int: float] = {}
+        self._document_titles_: dict[int: bytes] = {}
         self._sizes_: list[int] = [0 for _ in range(self._matrix_count_)]
         self._filename_ = filename
         self._root_ = folder
@@ -166,7 +167,7 @@ class Matrix:
             matrix[term] = SortedList([post], key = lambda x: x.tf())
             self._increment_size(id)
 
-    def add(self, term: str, post: Posting, url: str, update: bool = True) -> None:
+    def add(self, term: str, post: Posting, update: bool = True) -> None:
         """Insert a new document to the matrix for the given term.
         Adds the term if it does not yet exist in the matrix.
         
@@ -177,15 +178,24 @@ class Matrix:
         Args:
             term (str): the term to create or update. \n
             post (Posting): the Posting to add to term's value. \n
-            url (str): the url of the document \n
             update (bool, optional): Sets behavior for post matching on insertion. Defaults to True.
         """
         brk: int = self._choose_submatrix_(term)
         self._add_(brk, self._submatrices_[brk], term, post, update)
-        if post.id not in self._documents_:
-            self._documents_[post.id] = url
-            self._document_lengths_[post.id] = 0
         self._document_lengths_[post.id] += (1 + math.log10(post.frequency))**2
+        
+    def addDocument(self, docID: int, url: str, title: str) -> None:
+        """Add a document to the corpus.
+
+        Args:
+            docID (int): the id of the document \n
+            url (str): the url of the document \n
+            title (str): the document's title (if any)
+        """
+        if docID not in self._documents_:
+            self._documents_[docID] = url
+            self._document_lengths_[docID] = 0
+            self._document_titles_[docID] = "" if title is None else title
     
     def _remove_(self, id: int, matrix: MatrixData, term: str, postID: int = None) -> Posting|SortedList[Posting]:
         # remove a post from term's list, or remove the term entirely.
@@ -280,9 +290,9 @@ class Matrix:
         if printing:
             print("Saving Documents...")
         # save documents
-        with open(f"{self._root_}/documents.csv", newline = "", mode = "w") as f:
+        with open(f"{self._root_}/documents.csv", newline = "", mode = "w", encoding = "utf-8") as f:
             writer = csv.writer(f, delimiter = ",")
-            writer.writerows((i, d, math.sqrt(self._document_lengths_[i])) for i,d in self._documents_.items())
+            writer.writerows((i, d, math.sqrt(self._document_lengths_[i]), self._document_titles_[i]) for i,d in self._documents_.items())
         
         if printing:
             print("Merging Index...")

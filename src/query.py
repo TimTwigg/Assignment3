@@ -5,6 +5,7 @@ import csv
 import math
 import numpy as np
 from enum import Enum
+from dataclasses import dataclass
 from src.helpers import tokenize
 from src.config import Config
 
@@ -16,6 +17,11 @@ class CacheStrategy(Enum):
     TIMELY = 0
     # replace least popular cache value
     POPULARITY = 1
+
+@dataclass
+class Result:
+    url: str
+    title: str
 
 IndexData = list[dict[str: int]]
 
@@ -144,13 +150,13 @@ class Queryier:
     def getDocs(self) -> dict[int: tuple[str, float]]:
         """Load the documents dict"""
         docs = {}
-        with open(f"{self.indexLoc}/documents.csv", "r") as f:
+        with open(f"{self.indexLoc}/documents.csv", "r", encoding = "utf-8") as f:
             reader = csv.reader(f)
             for row in reader:
-                docs[int(row[0])] = (row[1], float(row[2]))
+                docs[int(row[0])] = (row[1], float(row[2]), row[3])
         return docs
 
-    def searchIndex(self, query: str, useStopWords: bool = False) -> tuple[list[str], int]:
+    def searchIndex(self, query: str, useStopWords: bool = False) -> tuple[list[Result], int]:
         """Query an index.
 
         Args:
@@ -239,7 +245,7 @@ class Queryier:
             return self.searchIndex(query, True)
         
         # convert to urls
-        urls = [self.docs[d][0] for d,_ in ranked[:self.config.k_results]]
+        urls = [Result(self.docs[d][0], self.docs[d][2]) for d,_ in ranked[:self.config.k_results]]
 
         # return top k results
         return urls, len(ranked)

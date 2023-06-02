@@ -14,11 +14,13 @@ async function search() {
     response.json().then(data => {
         results = data["results"];
         $("#results").empty();
-        $.each(results, (_, url) => {
+        $.each(results, (_, res) => {
             let p = $("<p/>").addClass("resultP");
+            let title = res["title"];
+            if (!title) title = res["url"];
             let a = $("<a>", {
-                text: url,
-                href: url
+                text: title,
+                href: res["url"]
             });
             p.append(a);
             $("#results").append(p);

@@ -15,13 +15,14 @@ SMALL_DATASET_ROOT = "data/analyst_dataset"
 LARGE_DATASET_ROOT = "data/developer_dataset"
 
 class Site:
-    def __init__(self, path: Path, tokens: dict[str: int], url: str, headers: set[str], bold: set[str], titles: set[str]):
+    def __init__(self, path: Path, tokens: dict[str: int], url: str, headers: set[str], bold: set[str], titles: set[str], title: str):
         self.path: Path = path
         self.tokens: dict[str: int] = tokens
         self.url: str = url
         self.titles: set[str] = titles
         self.headers: set[str] = headers
         self.bold: set[str] = bold
+        self.title: str = title
 
 class Indexer:
     def __init__(self, dataset: str = "test"):
@@ -40,7 +41,7 @@ class Indexer:
         self.config = Config()
         self.simHashes: set[int] = set()
     
-    def _parse_html_(self, html: str) -> tuple[list, set, set, set]:
+    def _parse_html_(self, html: str) -> tuple[list, set, set, set, str]:
         soup = BeautifulSoup(html, "lxml")
         
         # extract all visible text segments
@@ -52,9 +53,10 @@ class Indexer:
         # find bold
         bold = set(self.stemmer.stem(tok) for t in soup.find_all(re.compile("^(b|strong)$")) for tok in tokenize(t.text))
         # find titles
-        titles = set(self.stemmer.stem(tok) for t in soup.find_all(re.compile("^title$")) for tok in tokenize(t.text))
+        title = soup.find_all(re.compile("^title$"))
+        titles = set(self.stemmer.stem(tok) for t in title for tok in tokenize(t.text))
         
-        return tokens, headers, bold, titles
+        return tokens, headers, bold, titles, None if len(title) < 1 else title[0].text
     
     def _sim_in_set_(self, sim: int) -> bool:
         if sim in self.simHashes:
@@ -65,14 +67,12 @@ class Indexer:
         self.simHashes.add(sim)
         return False
     
-    def _tokenize_(self, url: Path) -> tuple[dict[str: int], str, set[str], set[str], set[str]]|None:
+    def _tokenize_(self, url: Path) -> tuple[dict[str: int], str, set[str], set[str], set[str], str]|None:
         # load file
         with url.open("r") as f:
             data = json.loads(f.read())
-        # get html content
-        html: str = data["content"]
         # parse html
-        tokens = self._parse_html_(html)
+        tokens = self._parse_html_(data["content"])
         freqs = computeWordFrequencies(tokens[0])
         if self._sim_in_set_(simhash(tokens[0], freqs)):
             return None

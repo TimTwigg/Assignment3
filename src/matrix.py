@@ -265,7 +265,7 @@ class Matrix:
                     index[tokenID] = [pos, i]
         return index
     
-    def finalize(self, printing: bool = False) -> None:
+    def finalize(self, pageranks: dict[int: float], printing: bool = False) -> None:
         """Merge the partial matrices and save final index."""
         meta = {
             "filename": self._filename_,
@@ -283,14 +283,14 @@ class Matrix:
         # save documents
         with open(f"{self._root_}/documents.csv", newline = "", mode = "w", encoding = "utf-8") as f:
             writer = csv.writer(f, delimiter = ",")
-            writer.writerows((i, d, math.sqrt(self._document_lengths_[i]), self._document_titles_[i], self._document_summaries_[i]) for i,d in self._documents_.items())
+            writer.writerows((i, d, math.sqrt(self._document_lengths_[i]), self._document_titles_[i], self._document_summaries_[i], pageranks[i]) for i,d in self._documents_.items())
         
         if printing:
             print("Merging Index...")
         # merge partials
         for i in range(self._matrix_count_):
             matrices = [self._load_submatrix_(i, p) for p in range(self._counter_)]
-            matrix = self._merge_matrices_(matrices)
+            matrix = self._merge_matrices_(matrices, pageranks)
             with open(f"{self._root_}/{self._filename_}{i}.csv", mode = "w", encoding = "utf-8", newline = "") as f:
                 writer = csv.writer(f)
                 writer.writerows([k, len(v), *[json.dumps(p.toDict()) for p in v]] for k,v in matrix.items())
@@ -341,11 +341,12 @@ class Matrix:
         
         return {k: SortedList((Posting(**p) for p in v), key = lambda x: x.tf()) for k,v in data.items()}
     
-    def _merge_matrices_(self, matrices: list[MatrixData]) -> MatrixData:
+    def _merge_matrices_(self, matrices: list[MatrixData], pageranks: dict[int: float]) -> MatrixData:
         """Merge a list of matrices.
 
         Args:
             matrices (list[MatrixData]): the list of submatrices to merge
+            pageranks (dict[int: float]): the pageranks of all documents
 
         Returns:
             MatrixData: the resultant merged matrix.
@@ -380,6 +381,6 @@ class Matrix:
         for k in matrix.keys():
             arr = np.array([i.tf() for i in matrix[k]])
             length = math.sqrt(np.sum(np.power(arr, 2)))
-            matrix[k].sort(key = lambda x: x.tf_norm(length), reverse = True)
+            matrix[k].sort(key = lambda x: (pageranks[x.id], x.tf_norm(length)), reverse = True)
 
         return matrix

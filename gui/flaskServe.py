@@ -5,7 +5,7 @@ from src.query import Queryier, CacheStrategy
 
 app = Flask(__name__)
 CORS(app)
-Q = Queryier("indexLarge", cacheStrategy = CacheStrategy.POPULARITY)
+Q = Queryier("index", cacheStrategy = CacheStrategy.POPULARITY)
 
 @app.route("/")
 def home():

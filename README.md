@@ -1,15 +1,6 @@
 # Search Engine
 CS 121/INF 141 Assignment3.
 
-## 3rd Party Libraries
-`pip install Cython` \
-`pip install sortedcontainers`
-
-## Cython Notes
-Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` to compile the cython to c code. The cython functions can be imported using "`from cythonLib.example import func`".
-
-[Cython Help](https://cython.readthedocs.io/en/latest/src/userguide/language_basics.html)
-
 ## Tasks
 ### Milestone 1
 
@@ -66,12 +57,11 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - use tf-idf score instead of term frequency [`done`]
     - add more scoring info to ranking process (query.Querier.searchIndex)
         - currently only cosine similarity (relevance) [`done`]
-        - add PageRank score
-            - store in documents.csv
-        - add HITS score
+        - add PageRank score [`done`]
+            - store in documents.csv [`done`]
         - add weighting for title/header/bold [`done`]
         - add conjunctive processing score [`done`]
-    - TODO from Queries
+    - TODO from Queries [`done`]
         - ignore links? (probably at indexing stage) [`done`]
         - add header importance consideration [`done`]
         - check for duplicate/similar pages (indexing stage) [`done`]

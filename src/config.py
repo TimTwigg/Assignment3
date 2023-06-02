@@ -20,6 +20,8 @@ class Config:
         """Number of results to return."""
         self.r_docs: int = int(parser["GENERAL"]["RDOCS"])
         """Number of posts to traverse per term. Value < 0 indicates no limit."""
+        self.pageRank_max_iters: int = int(parser["GENERAL"]["PAGERANK_MAX_ITERS"])
+        self.pageRank_damping_factor: float = float(parser["GENERAL"]["DAMPING_FACTOR"])
         
         # normalize weights
         total = header_weight + bold_weight + title_weight + cosine_similarity_weight + conjunctive_weight

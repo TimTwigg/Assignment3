@@ -154,7 +154,7 @@ class Queryier:
         with open(f"{self.indexLoc}/documents.csv", "r", encoding = "utf-8") as f:
             reader = csv.reader(f)
             for row in reader:
-                docs[int(row[0])] = (row[1], float(row[2]), row[3], row[4])
+                docs[int(row[0])] = (row[1], float(row[2]), row[3], row[4], float(row[5]))
         return docs
 
     def searchIndex(self, query: str, useStopWords: bool = False) -> tuple[list[Result], int]:
@@ -233,9 +233,14 @@ class Queryier:
         for id in conjunctiveRes:
             conjunctiveScores[docIDs[id]] = 1
         
-        # calculate final cosine similarity scores by dividing by normalized doc lengths
+        # pagerank
+        pagerankScores: list[float] = [0 for _ in range(len(docIDs))]
+        
         for d,i in docIDs.items():
+            # calculate final cosine similarity scores by dividing by normalized doc lengths
             cosineSimScores[i] /= self.docs[d][1]
+            # retrieve pagerank scores
+            pagerankScores[i] = self.docs[d][4]
         
         # weight the score methods
         cosineSimScores: np.ndarray = np.multiply(cosineSimScores, self.config.cosine_similarity_weight)
@@ -243,11 +248,11 @@ class Queryier:
         titleScores: np.ndarray = np.multiply(titleScores, self.config.title_weight)
         strongScores: np.ndarray = np.multiply(strongScores, self.config.bold_weight)
         conjunctiveScores: np.ndarray = np.multiply(conjunctiveScores, self.config.conjunctive_weight)
-        # combine relevance scores
+        # combine relevance scores and weight by ALPHA
         relevance_scores: np.ndarray = np.multiply(np.sum([cosineSimScores, headerScores, titleScores, strongScores, conjunctiveScores], 0), self.config.alpha)
         
         # authority scores
-        authority_scores: np.ndarray = np.array([1]*len(relevance_scores))
+        authority_scores: np.ndarray = np.array(pagerankScores)
         
         # sum different score methods
         scores: np.ndarray = np.sum([relevance_scores, authority_scores], 0)

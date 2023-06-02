@@ -23,8 +23,17 @@ async function search() {
                 href: res["url"]
             });
             p.append(a);
+            p.append($("<br/>"));
+            p.append(res["summary"]);
             $("#results").append(p);
         });
+        if (results.length === 0) {
+            let p = $("<p/>").addClass("resultP");
+            p.append($("<h3/>", {text: "Oops!"}));
+            p.append("Sorry, we couldn't find any results for that query. ");
+            p.append(`But if you're determined to find a result, then <a href="https://www.google.com/search?q=${encodeURIComponent($("#searchBar").val())}" target="_blank">this</a> might be helpful.`)
+            $("#results").append(p);
+        }
         let info = $("<p/>");
         info.append($("<span/>").text(`Query Time: ${data["time"]} ms`));
         info.append($("<br/>"));

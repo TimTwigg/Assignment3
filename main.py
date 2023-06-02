@@ -44,7 +44,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     # while there's another document to index
     while tokens:
         # insert each token to the matrix
-        matrix.addDocument(hash(tokens.url), tokens.url, tokens.title)
+        matrix.addDocument(hash(tokens.url), tokens.url, tokens.title, tokens.summary)
         for k,v in tokens.tokens.items():
             matrix.add(k, Posting(hash(tokens.url), v, k in tokens.headers, k in tokens.bold, k in tokens.titles))
         tokens = indexer.getNextSite()

@@ -144,3 +144,7 @@ h1 {
 h1.searched {
     display: none;
 }
+
+h3 {
+    margin: 0;
+}

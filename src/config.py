@@ -10,7 +10,7 @@ class Config:
         bold_weight: float = float(parser["WEIGHTS"]["BOLD"])
         title_weight: float = float(parser["WEIGHTS"]["TITLE"])
         cosine_similarity_weight: float = float(parser["WEIGHTS"]["COSINE_SIMILARITY"])
-        # self.alpha: float = float(parser["WEIGHTS"]["ALPHA"])
+        self.alpha: float = float(parser["WEIGHTS"]["ALPHA"])
         
         # general options
         self.sim_thresh: float = float(parser["GENERAL"]["SIM_THRESH"])

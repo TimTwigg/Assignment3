@@ -76,12 +76,12 @@ Write cython files as .pyx files in the cythonLib directory. Run `compile.bat` t
         - ignore links? (probably at indexing stage) [`done`]
         - add header importance consideration [`done`]
         - check for duplicate/similar pages (indexing stage) [`done`]
-        - ignore .txt, .LOG, .xml files?
+        - ignore .txt, .LOG, .xml files? [`done`]
         - what about results where 2 pages are the same, but one has a query [`done`]
         - same page, different fragment [`done`]
         - double check that cosine similarity is correctly implemented (longer pages still seem to be prioritized) [`done`]
 10. gui
     - make it [`done`]
-    - make NotFound page for when no results are found?
-    - openAI summaries?
-    - titles?
+    - make NotFound page for when no results are found? [`done`]
+    - openAI summaries? [`done`]
+    - titles? [`done`]

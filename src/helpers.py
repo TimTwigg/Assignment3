@@ -56,10 +56,17 @@ def simhash(tokens: list[str], frequencies: dict[str: int]) -> int:
 
     Returns:
         int: the integer SimHash
-    """
+    """    
     uTokens = list(set(tokens))
     hashes: list[tuple[str, int]] = [(t, int.from_bytes(hashlib.sha1(t.encode("utf-8")).digest()[:8], "little")) for t in uTokens]
-    v = [1 if sum(getMult(h, i)*frequencies[t] for t,h in hashes) > 0 else 0 for i in range(64)]
+    # longer calculation using nested loops proved faster than the shorter version which used the built-in sum function
+    v = []
+    for i in range(64):
+        total = 0
+        for t,h in hashes:
+            total += getMult(h, i)*frequencies[t]
+        v.append(1 if total > 0 else 0)
+    # convert to binary
     res = 0
     for ele in v:
         res = (res << 1) | ele

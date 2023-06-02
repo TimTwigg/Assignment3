@@ -22,6 +22,7 @@ class CacheStrategy(Enum):
 class Result:
     url: str
     title: str
+    summary: str
 
 IndexData = list[dict[str: int]]
 
@@ -153,7 +154,7 @@ class Queryier:
         with open(f"{self.indexLoc}/documents.csv", "r", encoding = "utf-8") as f:
             reader = csv.reader(f)
             for row in reader:
-                docs[int(row[0])] = (row[1], float(row[2]), row[3])
+                docs[int(row[0])] = (row[1], float(row[2]), row[3], row[4])
         return docs
 
     def searchIndex(self, query: str, useStopWords: bool = False) -> tuple[list[Result], int]:
@@ -234,8 +235,15 @@ class Queryier:
         headerScores: np.ndarray = np.multiply(headerScores, self.config.header_weight)
         titleScores: np.ndarray = np.multiply(titleScores, self.config.title_weight)
         strongScores: np.ndarray = np.multiply(strongScores, self.config.bold_weight)
+        # combine relevance scores
+        relevance_scores: np.ndarray = np.multiply(np.prod([cosineSimScores, headerScores, titleScores, strongScores], 0), self.config.alpha)
+        
+        # authority scores
+        authority_scores: np.ndarray = np.array([1]*len(relevance_scores))
+        
         # sum different score methods
-        scores: np.ndarray = np.sum([cosineSimScores, headerScores, titleScores, strongScores], 0)
+        # scores: np.ndarray = np.sum([cosineSimScores, headerScores, titleScores, strongScores], 0)
+        scores: np.ndarray = np.sum([relevance_scores, authority_scores], 0)
         
         # divide by normalized document length and retrieve documents in rank order
         ranked = sorted(((d, scores[i]) for d,i in docIDs.items()), key = lambda x: x[1], reverse = True)
@@ -245,7 +253,7 @@ class Queryier:
             return self.searchIndex(query, True)
         
         # convert to urls
-        urls = [Result(self.docs[d][0], self.docs[d][2]) for d,_ in ranked[:self.config.k_results]]
+        urls = [Result(self.docs[d][0], self.docs[d][2], self.docs[d][3]) for d,_ in ranked[:self.config.k_results]]
 
         # return top k results
         return urls, len(ranked)

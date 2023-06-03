@@ -23,7 +23,26 @@ student affairs office [performs well on time but poorly on relevance]
 ics faculty [performs well on time but poorly on relevance]
 
 # Changes to Improve Performance
+
 Ignore hyperlink text when indexing.
     - reduces importance of pages who had most of their tokens in links (such as professor publications list pages)
+    - links are still scraped for pagerank calculation
 Implement similarity detection during indexing
     - reduce search pool size
+Fix bugs in cosine similarity computation and header/title/bold text detection
+    - these ranking methods actually work now
+Add conjunctive processing score
+    - add a little extra weight to pages that fully satisfy the query
+Tune the weighting options in config.ini
+    - I played around with the weighting, mostly trial and error, to get better results
+
+# Summary
+
+Initially, my ranking methods actually had bugs in them that rendered them fairly useless,
+so my results for almost all queries were terrible in terms of relevance. After debugging
+and adding some extra ranking methods (conjunctive processing and pagerank), the relevance
+of results jumped. I searched a number of these queries (with the added term "uci") on google
+to attempt to find the best page for that query, and those pages were in the top 25 results
+each time, usually in the top 5 if not 1. Since the poor performace before was due to bugs,
+achieving the relevance boost did not affect time, and all queries still perform in, on average,
+40ms at worst, 1ms at best.

@@ -23,6 +23,7 @@ class Config:
         self.pageRank_max_iters: int = int(parser["GENERAL"]["PAGERANK_MAX_ITERS"])
         self.pageRank_damping_factor: float = float(parser["GENERAL"]["DAMPING_FACTOR"])
         self.index_src: str = parser["GENERAL"]["INDEX"]
+        self.pagerank: bool = bool(int(parser["GENERAL"]["PAGERANK"]))
         
         # normalize weights
         total = header_weight + bold_weight + title_weight + cosine_similarity_weight + conjunctive_weight

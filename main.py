@@ -7,6 +7,7 @@ from src.matrix import  Matrix, Posting
 from src.query import Queryier, CacheStrategy
 from src.refactor import refactor, RefactorException
 from src.ranker import PageRanker
+from src.config import Config
 
 def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = True, printing: bool = True, maxDocs: int = None, breakpoints: list[str] = ["a", "i", "r"]):
     """Create an index from a dataset.
@@ -40,6 +41,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         print("Done")
         print("Begin Indexing")
     ranker = PageRanker()
+    config = Config()
     
     count = 0
     tokens: Site = indexer.getNextSite()
@@ -67,7 +69,11 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     
     if printing:
         print("Creating PageRank: ", end = "")
-    pagerank = ranker.run(indexer.getLinks())
+    if config.pagerank:
+        pagerank = ranker.run(indexer.getLinks())
+    else:
+        links = indexer.getLinks()
+        pagerank = {i: 1/len(links) for i in links.keys()}
     if printing:
         print("Done")
     

@@ -2,10 +2,12 @@ from flask import Flask, request, render_template, jsonify
 from flask_cors import CORS
 import time
 from src.query import Queryier, CacheStrategy
+from src.config import Config
 
 app = Flask(__name__)
 CORS(app)
-Q = Queryier("indexLargeOld", cacheStrategy = CacheStrategy.POPULARITY)
+config = Config()
+Q = Queryier(config.index_src, cacheStrategy = CacheStrategy.POPULARITY)
 
 @app.route("/")
 def home():

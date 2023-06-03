@@ -24,6 +24,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
     if len(breakpoints) == 1 and breakpoints[0].lower() == "none":
         breakpoints = []
     
+    config = Config()
     time_start = time.process_time()
     if printing:
         print("Index Dataset:", dataset)
@@ -32,7 +33,7 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         print("Limit Document Count:", f"Yes ({maxDocs})" if maxDocs is not None else "No")
         print("Breakpoints:", breakpoints)
         print("Creating Indexer: ", end = "")
-    indexer = Indexer(dataset)
+    indexer = Indexer(dataset, config.openai_summary)
     if printing:
         print("Done")
         print("Creating Matrix: ", end = "")
@@ -41,7 +42,6 @@ def CreateIndex(dataset: str = "test", chunkSize: int = 1000, offload: bool = Tr
         print("Done")
         print("Begin Indexing")
     ranker = PageRanker()
-    config = Config()
     
     count = 0
     tokens: Site = indexer.getNextSite()

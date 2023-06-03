@@ -24,6 +24,7 @@ class Config:
         self.pageRank_damping_factor: float = float(parser["GENERAL"]["DAMPING_FACTOR"])
         self.index_src: str = parser["GENERAL"]["INDEX"]
         self.pagerank: bool = bool(int(parser["GENERAL"]["PAGERANK"]))
+        self.openai_summary: bool = bool(int(parser["GENERAL"]["OPENAI_SUMMARY"]))
         
         # normalize weights
         total = header_weight + bold_weight + title_weight + cosine_similarity_weight + conjunctive_weight

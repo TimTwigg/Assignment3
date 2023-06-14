@@ -8,4 +8,5 @@ A cached version of the UCI ICS domain.
 
 ## Running the Engine
 
-Run `run.py` to start the search engine.
+Run `run.py` to start the search engine. <br/>
+The code will fail to run since the indexes and data source are missing. Thye are too large to include in the repo.

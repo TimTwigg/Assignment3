@@ -152,7 +152,8 @@ cython_debug/
 #.idea/
 
 data/
-index/
+index*/
+milestones/
 *.json
 *.csv
 summary.txt

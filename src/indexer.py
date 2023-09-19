@@ -100,15 +100,6 @@ class Indexer:
                         bold.add(self.stemmer.stem(tok))
                     case TagType.HEADER:
                         headers.add(self.stemmer.stem(tok))
-                        
-        
-        # find headers
-        # headers: set[str] = set(self.stemmer.stem(tok) for t in soup.find_all(re.compile("^h[1-3]$")) for tok in tokenize(t.text))
-        # # find bold
-        # bold: set[str] = set(self.stemmer.stem(tok) for t in soup.find_all(re.compile("^(b|strong)$")) for tok in tokenize(t.text))
-        # # find titles
-        # title: list[str] = soup.find_all(re.compile("^title$"))
-        # titles: set[str] = set(self.stemmer.stem(tok) for t in title for tok in tokenize(t.text))
         
         return tokens, headers, bold, titles, None if len(title) < 1 else title[0], self.summarize(". ".join(texts)), links
     
